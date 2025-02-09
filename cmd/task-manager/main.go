@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"os"
 )
 
 func rootHandler(w http.ResponseWriter, r *http.Request) {
@@ -18,21 +17,9 @@ func rootHandler(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/", rootHandler)
 
-	port := "8080"
-	if p := getenv("PORT", "8080"); p != "" {
-		port = p
-	}
-
-	fmt.Printf("Server starting on port %s\n", port)
-	err := http.ListenAndServe(":"+port, nil)
+	fmt.Printf("Server starting on port 8080\n")
+	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		fmt.Println("Error starting server:", err)
 	}
-}
-
-func getenv(key, fallback string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return fallback
 }
