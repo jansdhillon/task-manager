@@ -12,7 +12,7 @@ EXPOSE 8080
 
 RUN --mount=type=secret,id=github_token,env=GITHUB_TOKEN
 
-RUN --mount=type=secret,id=supabse_url,env=SUPABASE_URL
+RUN --mount=type=secret,id=supabase_url,env=SUPABASE_URL
 
 RUN --mount=type=secret,id=supabase_anon_key,env=SUPABASE_ANON_KEY
 
