@@ -12,6 +12,19 @@ type SupabaseClient struct {
 	SupabaseServiceRoleKey string
 }
 
+func getTasksHandler(client *SupabaseClient) http.HandlerFunc {
+	_, err := http.Get(client.SupabaseUrl)
+	if err != nil {
+		return func(w http.ResponseWriter, r *http.Request) {
+			http.NotFound(w, r)
+		}
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}
+}
+
 func rootHandler(client *SupabaseClient) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
@@ -33,6 +46,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", rootHandler(client))
+	http.HandleFunc("/tasks", getTasksHandler((client)))
 
 	fmt.Printf("Server starting on port 8080\n")
 	err := http.ListenAndServe(":8080", nil)

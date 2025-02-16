@@ -32,11 +32,11 @@ jobs:
       - name: Build Docker Image
         run: |
           docker buildx build \
-          --build-arg SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}" \
-          --build-arg SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}" \
-          --build-arg SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
-          -t gcr.io/${{ vars.ARTIFACT_REPO }} \
-          .
+            --secret id=supabase_service_role_key,src=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} \
+            --secret id=supabase_anon_key,src=${{ secrets.SUPABASE_ANON_KEY }} \
+            --secret id=supabase_url,src=${{ secrets.SUPABASE_URL }} \
+            -t gcr.io/${{ vars.ARTIFACT_REPO }} \
+            .
       - name: Push Docker Image to GCR
         run: docker push gcr.io/${{ vars.ARTIFACT_REPO }}
       - name: Deploy to Cloud Run
