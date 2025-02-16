@@ -2,6 +2,7 @@ name: Build and Deploy to GCP
 on:
   push:
     branches: main
+  workflow_dispatch:
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -29,12 +30,20 @@ jobs:
       - name: Authenticate Docker with GCR
         run: |-
           gcloud auth print-access-token --impersonate-service-account ${{ vars.SERVICE_ACCOUNT_EMAIL }} | docker login -u oauth2accesstoken --password-stdin gcr.io
+      - name: Build
+        uses: docker/build-push-action@v6
+        with:
+          platforms: linux/amd64,linux/arm64
+          tags: user/app:latest
+          secrets: |
+            "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}"
+            "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+            "SUPABASE_URL=${{ secrets.SUPABASE_URL }}"
+            "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}"
+
       - name: Build Docker Image
         run: |
           docker buildx build \
-            --secret id=supabase_service_role_key,src=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }} \
-            --secret id=supabase_anon_key,src=${{ secrets.SUPABASE_ANON_KEY }} \
-            --secret id=supabase_url,src=${{ secrets.SUPABASE_URL }} \
             -t gcr.io/${{ vars.ARTIFACT_REPO }} \
             .
       - name: Push Docker Image to GCR
