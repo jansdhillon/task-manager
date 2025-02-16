@@ -58,7 +58,7 @@ func main() {
 func getEnv(key string) string {
 	value := os.Getenv(key)
 	if value == "" {
-		fmt.Printf("Env var %s not found, exiting...", value)
+		fmt.Printf("Env var %s not found, exiting...", key)
 		os.Exit(1)
 	}
 	return value
