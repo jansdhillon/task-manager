@@ -33,8 +33,6 @@ jobs:
       - name: Build
         uses: docker/build-push-action@v6
         with:
-          platforms: linux/amd64,linux/arm64
-          tags: user/app:latest
           secrets: |
             "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}"
             "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
