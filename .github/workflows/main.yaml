@@ -34,10 +34,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           secrets: |
-            "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}"
-            "SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
-            "SUPABASE_URL=${{ secrets.SUPABASE_URL }}"
-            "SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }}"
+            "github_token=${{ secrets.GITHUB_TOKEN }}"
+            "supabase_service_role_key=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
+            "supabase_url=${{ secrets.SUPABASE_URL }}"
+            "supabase_anon_key=${{ secrets.SUPABASE_ANON_KEY }}"
 
       - name: Build Docker Image
         run: |
