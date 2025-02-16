@@ -34,7 +34,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           tags: user/app:latest
-          platforms: linux/arm64
+          platforms: linux/amd64
           secrets: |
             "github_token=${{ secrets.GITHUB_TOKEN }}"
             "supabase_service_role_key=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
