@@ -54,3 +54,6 @@ jobs:
             --project ${{ vars.GCP_PROJECT_ID }} \
             --platform managed \
             --allow-unauthenticated
+            --set-env-vars SUPABASE_URL="${{ secrets.SUPABASE_URL }}" \
+            --set-env-vars SUPABASE_ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}" \
+            --set-env-vars SUPABASE_SERVICE_ROLE_KEY="${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}"
