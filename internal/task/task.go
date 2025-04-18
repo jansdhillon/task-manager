@@ -33,7 +33,7 @@ func (t *Task) String() string {
 		t.ID, t.Title, description, t.LastUpdatedAt, t.CreatedAt, t.Deleted)
 }
 
-func NewTask(title string, description string) *Task {
+func New(title string, description string) *Task {
 	return &Task{
 		ID:            uuid.New(),
 		Title:         title,
@@ -49,9 +49,9 @@ type InMemoryTaskStore struct {
 	Tasks []Task
 }
 
-func (s *InMemoryTaskStore) AddTask(t *Task) Task {
+func (s *InMemoryTaskStore) AddTask(t *Task) *Task {
 	s.Tasks = append(s.Tasks, *t)
-	return *t
+	return t
 }
 
 const MAX_TASKS = 10
