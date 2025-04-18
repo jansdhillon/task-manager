@@ -2,6 +2,7 @@ package task
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 	"time"
 
@@ -31,10 +32,14 @@ func TestGetTaskById(t *testing.T) {
 
 	store.AddTask(task)
 
-	task, err := store.GetTaskById(id)
+	retrievedTask, err := store.GetTaskById(id)
 
 	if err != nil {
-		t.Error("Task not found!")
+		t.Errorf("Failed to get task: %v", err)
+	}
+
+	if !reflect.DeepEqual(retrievedTask, task) {
+		t.Errorf("Tasks didn't match! Original task: %v,\n retrieved task: %v", task, retrievedTask)
 	}
 
 }
