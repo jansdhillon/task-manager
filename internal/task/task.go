@@ -1,6 +1,7 @@
 package task
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -23,7 +24,7 @@ type TaskStore interface {
 	GetTask(id uuid.UUID) (Task, error)
 }
 
-func (t *Task) ToString() string {
+func (t *Task) String() string {
 	description := "(no description)"
 	if t.Description != nil {
 		description = *t.Description
@@ -32,7 +33,7 @@ func (t *Task) ToString() string {
 		t.ID, t.Title, description, t.LastUpdatedAt, t.CreatedAt, t.Deleted)
 }
 
-func New(title string, description string) *Task {
+func NewTask(title string, description string) *Task {
 	return &Task{
 		ID:            uuid.New(),
 		Title:         title,
@@ -54,3 +55,12 @@ func (s *InMemoryTaskStore) AddTask(t *Task) Task {
 }
 
 const MAX_TASKS = 10
+
+func (s *InMemoryTaskStore) GetTaskById(id uuid.UUID) (*Task, error) {
+	for i := range s.Tasks {
+		if s.Tasks[i].ID == id {
+			return &s.Tasks[i], nil
+		}
+	}
+	return nil, errors.New("task not found")
+}
