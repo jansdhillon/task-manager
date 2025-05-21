@@ -33,11 +33,11 @@ func (t *Task) String() string {
 		t.ID, t.Title, description, t.LastUpdatedAt, t.CreatedAt, t.Deleted)
 }
 
-func New(title string, description string) *Task {
+func New(title string, description *string) *Task {
 	return &Task{
 		ID:            uuid.New(),
 		Title:         title,
-		Description:   &description,
+		Description:   description,
 		CreatedAt:     time.Now(),
 		LastUpdatedAt: time.Now(),
 		Deleted:       false,
@@ -56,6 +56,9 @@ func (s *InMemoryTaskStore) AddTask(t *Task) *Task {
 
 const MAX_TASKS = 10
 
+// GetTaskById will search the store for a given
+// Task by ID. If not found, an error will be
+// returned.
 func (s *InMemoryTaskStore) GetTaskById(id uuid.UUID) (*Task, error) {
 	for i := range s.Tasks {
 		if s.Tasks[i].ID == id {
@@ -63,4 +66,28 @@ func (s *InMemoryTaskStore) GetTaskById(id uuid.UUID) (*Task, error) {
 		}
 	}
 	return nil, errors.New("task not found")
+}
+
+// DeleteTask takes the ID of a task and deletes it from
+// the InMemoryTaskStore.
+func (s *InMemoryTaskStore) DeleteTask(id uuid.UUID) error {
+	n := 0
+	found := false
+	for _, task := range s.Tasks {
+		if task.ID != id {
+			s.Tasks[n] = task
+			n++
+		} else {
+			found = true
+			fmt.Printf("Deleting task with ID %s\n", task.ID)
+		}
+	}
+
+	if !found {
+		return errors.New(fmt.Sprintf("Task with ID %s not found!\n", id))
+	}
+
+	s.Tasks = s.Tasks[:n]
+
+	return nil
 }

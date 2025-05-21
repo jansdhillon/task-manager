@@ -25,7 +25,8 @@ func TestAddTask(t *testing.T) {
 // checking for a valid return value.
 func TestGetTaskById(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
-	task := New("Hello World", "world")
+	desc := "world"
+	task := New("Hello World", &desc)
 	fmt.Println(task.String())
 
 	id := task.ID
@@ -40,6 +41,92 @@ func TestGetTaskById(t *testing.T) {
 
 	if !reflect.DeepEqual(retrievedTask, task) {
 		t.Errorf("Tasks didn't match! Original task: %v,\n retrieved task: %v", task, retrievedTask)
+	}
+
+}
+
+// TestGetTaskById still works if description
+// is null.
+func TestGetTaskByIdNillable(t *testing.T) {
+	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
+	task := New("Hello World", nil)
+	fmt.Println(task.String())
+
+	id := task.ID
+
+	store.AddTask(task)
+
+	retrievedTask, err := store.GetTaskById(id)
+
+	if err != nil {
+		t.Errorf("Failed to get task: %v", err)
+	}
+
+	if !reflect.DeepEqual(retrievedTask, task) {
+		t.Errorf("Tasks didn't match! Original task: %v,\n retrieved task: %v", task, retrievedTask)
+	}
+
+}
+
+func TestDeleteTask(t *testing.T) {
+	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
+
+	var taskIDs []uuid.UUID
+
+	for i := range 10 {
+		task := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		taskIDs = append(taskIDs, task.ID)
+
+		returnedTask, err := store.GetTaskById(task.ID)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if task.ID != returnedTask.ID {
+			t.Error("ID mismatch")
+		}
+	}
+
+	for _, id := range taskIDs {
+		fmt.Printf("Should be deleting task with ID %s\n", id)
+		err := store.DeleteTask(id)
+		if err != nil {
+			t.Error(err)
+		}
+	}
+
+	if len(store.Tasks) != 0 {
+		t.Errorf("expected all tasks to be deleted, but got %d left", len(store.Tasks))
+	}
+}
+
+func TestDeleteTaskNotFoundRaises(t *testing.T) {
+	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
+
+	var taskIDs []uuid.UUID
+
+	for i := range 10 {
+		task := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		taskIDs = append(taskIDs, task.ID)
+
+		returnedTask, err := store.GetTaskById(task.ID)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if task.ID != returnedTask.ID {
+			t.Error("ID mismatch")
+		}
+	}
+
+	invalidID := uuid.New()
+	fmt.Printf("Attempting to delete task with ID %s\n", invalidID)
+	err := store.DeleteTask(invalidID)
+
+	fmt.Printf("Received err: %v", err)
+
+	if err == nil {
+		t.Error("expected error")
 	}
 
 }

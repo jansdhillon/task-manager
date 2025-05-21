@@ -17,7 +17,8 @@ func main() {
 	}
 
 	for i := range task.MAX_TASKS {
-		task := task.New(fmt.Sprintf("Task #%d", i), "world")
+		description := "world"
+		task := task.New(fmt.Sprintf("Task #%d", i), &description)
 		addedTask := store.AddTask(task)
 		fmt.Printf("Added task: %s\n", addedTask.String())
 	}
