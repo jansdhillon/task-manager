@@ -130,3 +130,25 @@ func TestDeleteTaskNotFoundRaises(t *testing.T) {
 	}
 
 }
+
+func TestUpdateTask(t *testing.T) {
+	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
+	task := New("task", nil)
+	store.AddTask(task)
+
+	newDesc := "Hello"
+	draftTask := &DraftTask{Title: "New", Description: &newDesc}
+
+	updatedTask, err := store.UpdateTask(task.ID, *draftTask)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if updatedTask.Title != "New" && *updatedTask.Description != newDesc {
+		t.Errorf("Title and desc didn't match! Updated title: %s, updated desc: %s", updatedTask.Title, *updatedTask.Description)
+	}
+
+	fmt.Printf("Updated task: %s, updated desc: %s\n", updatedTask.Title, *updatedTask.Description)
+
+}
