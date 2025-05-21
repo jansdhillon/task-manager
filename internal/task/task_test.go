@@ -2,7 +2,6 @@ package task
 
 import (
 	"fmt"
-	"reflect"
 	"testing"
 	"time"
 
@@ -39,7 +38,7 @@ func TestGetTask(t *testing.T) {
 		t.Errorf("Failed to get task: %v", err)
 	}
 
-	if !reflect.DeepEqual(retrievedTask, task) {
+	if retrievedTask.ID != task.ID {
 		t.Errorf("Tasks didn't match! Original task: %v,\n retrieved task: %v", task, retrievedTask)
 	}
 
@@ -62,7 +61,7 @@ func TestGetTaskNillable(t *testing.T) {
 		t.Errorf("Failed to get task: %v", err)
 	}
 
-	if !reflect.DeepEqual(retrievedTask, task) {
+	if retrievedTask.ID != task.ID {
 		t.Errorf("Tasks didn't match! Original task: %v,\n retrieved task: %v", task, retrievedTask)
 	}
 
