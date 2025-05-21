@@ -21,9 +21,9 @@ func TestAddTask(t *testing.T) {
 	}
 }
 
-// TestGetTaskById calls task.GetTaskById with an ID,
+// TestGetTask calls task.GetTask with an ID,
 // checking for a valid return value.
-func TestGetTaskById(t *testing.T) {
+func TestGetTask(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
 	desc := "world"
 	task := New("Hello World", &desc)
@@ -33,7 +33,7 @@ func TestGetTaskById(t *testing.T) {
 
 	store.AddTask(task)
 
-	retrievedTask, err := store.GetTaskById(id)
+	retrievedTask, err := store.GetTask(id)
 
 	if err != nil {
 		t.Errorf("Failed to get task: %v", err)
@@ -45,9 +45,9 @@ func TestGetTaskById(t *testing.T) {
 
 }
 
-// TestGetTaskById still works if description
+// TestGetTaskBy still works if description
 // is null.
-func TestGetTaskByIdNillable(t *testing.T) {
+func TestGetTaskNillable(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
 	task := New("Hello World", nil)
 	fmt.Println(task.String())
@@ -56,7 +56,7 @@ func TestGetTaskByIdNillable(t *testing.T) {
 
 	store.AddTask(task)
 
-	retrievedTask, err := store.GetTaskById(id)
+	retrievedTask, err := store.GetTask(id)
 
 	if err != nil {
 		t.Errorf("Failed to get task: %v", err)
@@ -77,7 +77,7 @@ func TestDeleteTask(t *testing.T) {
 		task := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
 		taskIDs = append(taskIDs, task.ID)
 
-		returnedTask, err := store.GetTaskById(task.ID)
+		returnedTask, err := store.GetTask(task.ID)
 		if err != nil {
 			t.Error(err)
 		}
@@ -109,14 +109,7 @@ func TestDeleteTaskNotFoundRaises(t *testing.T) {
 		task := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
 		taskIDs = append(taskIDs, task.ID)
 
-		returnedTask, err := store.GetTaskById(task.ID)
-		if err != nil {
-			t.Error(err)
-		}
-
-		if task.ID != returnedTask.ID {
-			t.Error("ID mismatch")
-		}
+		store.GetTask(task.ID)
 	}
 
 	invalidID := uuid.New()
@@ -150,5 +143,29 @@ func TestUpdateTask(t *testing.T) {
 	}
 
 	fmt.Printf("Updated task: %s, updated desc: %s\n", updatedTask.Title, *updatedTask.Description)
+
+}
+
+func TestUpdateTaskNotFoundRaises(t *testing.T) {
+	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
+
+	var taskIDs []uuid.UUID
+
+	for i := range 10 {
+		task := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		taskIDs = append(taskIDs, task.ID)
+
+		store.GetTask(task.ID)
+	}
+
+	invalidID := uuid.New()
+	fmt.Printf("Attempting to update task with ID %s\n", invalidID)
+	_, err := store.UpdateTask(invalidID, DraftTask{Title: "h", Description: nil})
+
+	fmt.Printf("Received err: %v", err)
+
+	if err == nil {
+		t.Error("expected error")
+	}
 
 }

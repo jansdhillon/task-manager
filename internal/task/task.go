@@ -61,10 +61,10 @@ func (s *InMemoryTaskStore) AddTask(t *Task) *Task {
 
 const MAX_TASKS = 10
 
-// GetTaskById will search the store for a given
+// GetTask will search the store for a given
 // Task by ID. If not found, an error will be
 // returned.
-func (s *InMemoryTaskStore) GetTaskById(id uuid.UUID) (*Task, error) {
+func (s *InMemoryTaskStore) GetTask(id uuid.UUID) (*Task, error) {
 	for i := range s.Tasks {
 		if s.Tasks[i].ID == id {
 			return &s.Tasks[i], nil
@@ -99,7 +99,7 @@ func (s *InMemoryTaskStore) DeleteTask(id uuid.UUID) error {
 
 // UpdateTask updates the content of a task
 func (s *InMemoryTaskStore) UpdateTask(id uuid.UUID, draftTask DraftTask) (*Task, error) {
-	task, err := s.GetTaskById(id)
+	task, err := s.GetTask(id)
 
 	if err != nil {
 		return nil, err
