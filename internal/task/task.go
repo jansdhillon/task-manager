@@ -17,15 +17,10 @@ type Task struct {
 	Deleted       bool      `json:"deleted"`
 }
 
-type DraftTask struct {
-	Title       string  `json:"title"`
-	Description *string `json:"description"`
-}
-
 type TaskStore interface {
-	AddTask() (Task, error)
-	DeleteTask() error
-	UpdateTask() (Task, error)
+	AddTask(t *Task) (Task, error)
+	DeleteTask(id uuid.UUID) error
+	UpdateTask(id uuid.UUID) (Task, error)
 	GetTask(id uuid.UUID) (Task, error)
 }
 
@@ -98,14 +93,14 @@ func (s *InMemoryTaskStore) DeleteTask(id uuid.UUID) error {
 }
 
 // UpdateTask updates the content of a task
-func (s *InMemoryTaskStore) UpdateTask(id uuid.UUID, draftTask DraftTask) (*Task, error) {
+func (s *InMemoryTaskStore) UpdateTask(id uuid.UUID, title string, description *string) (*Task, error) {
 	task, err := s.GetTask(id)
 
 	if err != nil {
 		return nil, err
 	}
 
-	task.Title, task.Description = draftTask.Title, draftTask.Description
+	task.Title, task.Description = title, description
 
 	return task, nil
 

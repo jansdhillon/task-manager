@@ -130,9 +130,8 @@ func TestUpdateTask(t *testing.T) {
 	store.AddTask(task)
 
 	newDesc := "Hello"
-	draftTask := &DraftTask{Title: "New", Description: &newDesc}
 
-	updatedTask, err := store.UpdateTask(task.ID, *draftTask)
+	updatedTask, err := store.UpdateTask(task.ID, "New", &newDesc)
 
 	if err != nil {
 		t.Error(err)
@@ -160,7 +159,7 @@ func TestUpdateTaskNotFoundRaises(t *testing.T) {
 
 	invalidID := uuid.New()
 	fmt.Printf("Attempting to update task with ID %s\n", invalidID)
-	_, err := store.UpdateTask(invalidID, DraftTask{Title: "h", Description: nil})
+	_, err := store.UpdateTask(invalidID, "h", nil)
 
 	fmt.Printf("Received err: %v", err)
 
