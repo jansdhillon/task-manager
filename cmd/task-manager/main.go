@@ -3,9 +3,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
 
 	task "github.com/jansdhillon/task-manager/internal/task"
+	"github.com/urfave/cli/v3"
 )
 
 func main() {
@@ -22,5 +25,7 @@ func main() {
 		addedTask := store.AddTask(task)
 		fmt.Printf("Added task: %s\n", addedTask.String())
 	}
+
+	(&cli.Command{}).Run(context.Background(), os.Args)
 
 }
