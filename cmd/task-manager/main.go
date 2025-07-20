@@ -9,7 +9,7 @@ import (
 	"os"
 
 	task "github.com/jansdhillon/task-manager/internal/task"
-	"github.com/urfave/cli/v3"
+	cli "github.com/urfave/cli/v3"
 )
 
 const (

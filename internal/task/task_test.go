@@ -13,10 +13,13 @@ func TestAddTask(t *testing.T) {
 
 	task := &Task{ID: uuid.New(), Title: "World", Description: nil, CreatedAt: time.Now(), LastUpdatedAt: time.Now(), Deleted: false}
 
-	addedTask := store.AddTask(task)
+	addedTask, err := store.AddTask(task)
+	if err != nil {
+		t.Errorf("Failed to add task: %v", err)
+	}
 
-	if addedTask != task {
-		t.Errorf("Result was wrong, wanted: %s, got: %v.", task.String(), addedTask)
+	if addedTask.ID != task.ID {
+		t.Errorf("Result was wrong, wanted: %s, got: %v.", task.String(), addedTask.String())
 	}
 }
 
@@ -30,7 +33,10 @@ func TestGetTask(t *testing.T) {
 
 	id := task.ID
 
-	store.AddTask(task)
+	_, err := store.AddTask(task)
+	if err != nil {
+		t.Errorf("Failed to add task: %v", err)
+	}
 
 	retrievedTask, err := store.GetTask(id)
 
@@ -53,7 +59,10 @@ func TestGetTaskNillable(t *testing.T) {
 
 	id := task.ID
 
-	store.AddTask(task)
+	_, err := store.AddTask(task)
+	if err != nil {
+		t.Errorf("Failed to add task: %v", err)
+	}
 
 	retrievedTask, err := store.GetTask(id)
 
@@ -73,7 +82,10 @@ func TestDeleteTask(t *testing.T) {
 	var taskIDs []uuid.UUID
 
 	for i := range 10 {
-		task := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		task, err := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		if err != nil {
+			t.Error(err)
+		}
 		taskIDs = append(taskIDs, task.ID)
 
 		returnedTask, err := store.GetTask(task.ID)
@@ -105,10 +117,16 @@ func TestDeleteTaskNotFoundRaises(t *testing.T) {
 	var taskIDs []uuid.UUID
 
 	for i := range 10 {
-		task := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		task, err := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		if err != nil {
+			t.Error(err)
+		}
 		taskIDs = append(taskIDs, task.ID)
 
-		store.GetTask(task.ID)
+		_, err = store.GetTask(task.ID)
+		if err != nil {
+			t.Error(err)
+		}
 	}
 
 	invalidID := uuid.New()
@@ -126,7 +144,10 @@ func TestDeleteTaskNotFoundRaises(t *testing.T) {
 func TestUpdateTask(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
 	task := New("task", nil)
-	store.AddTask(task)
+	_, err := store.AddTask(task)
+	if err != nil {
+		t.Errorf("Failed to add task: %v", err)
+	}
 
 	newDesc := "Hello"
 
@@ -150,17 +171,23 @@ func TestUpdateTaskNotFoundRaises(t *testing.T) {
 	var taskIDs []uuid.UUID
 
 	for i := range 10 {
-		task := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		task, err := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		if err != nil {
+			t.Error(err)
+		}
 		taskIDs = append(taskIDs, task.ID)
 
-		store.GetTask(task.ID)
+		_, err = store.GetTask(task.ID)
+		if err != nil {
+			t.Error(err)
+		}
 	}
 
 	invalidID := uuid.New()
 	fmt.Printf("Attempting to update task with ID %s\n", invalidID)
 	_, err := store.UpdateTask(invalidID, "h", nil)
 
-	fmt.Printf("Received err: %v", err)
+	fmt.Printf("Received err: %v\n", err)
 
 	if err == nil {
 		t.Error("expected error")

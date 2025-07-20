@@ -20,8 +20,8 @@ type Task struct {
 type TaskStore interface {
 	AddTask(t *Task) (Task, error)
 	DeleteTask(id uuid.UUID) error
-	UpdateTask(id uuid.UUID) (Task, error)
-	GetTask(id uuid.UUID) (Task, error)
+	UpdateTask(id uuid.UUID, title string, description *string) (*Task, error)
+	GetTask(id uuid.UUID) (*Task, error)
 }
 
 func (t *Task) String() string {
@@ -49,9 +49,9 @@ type InMemoryTaskStore struct {
 	Tasks []Task
 }
 
-func (s *InMemoryTaskStore) AddTask(t *Task) *Task {
+func (s *InMemoryTaskStore) AddTask(t *Task) (Task, error) {
 	s.Tasks = append(s.Tasks, *t)
-	return t
+	return *t, nil
 }
 
 const MAX_TASKS = 10
@@ -84,7 +84,7 @@ func (s *InMemoryTaskStore) DeleteTask(id uuid.UUID) error {
 	}
 
 	if !found {
-		return errors.New(fmt.Sprintf("Task with ID %s not found!\n", id))
+		return fmt.Errorf("Task with ID %s not found!\n", id)
 	}
 
 	s.Tasks = s.Tasks[:n]
