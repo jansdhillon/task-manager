@@ -27,7 +27,7 @@ func (s *TaskServer) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) 
 		description = req.Description
 	}
 
-	newTask := New(req.Title, description)
+	newTask := NewTask(req.Title, description)
 	createdTask, err := s.store.AddTask(newTask)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)

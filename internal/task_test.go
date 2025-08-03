@@ -28,7 +28,7 @@ func TestAddTask(t *testing.T) {
 func TestGetTask(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
 	desc := "world"
-	task := New("Hello World", &desc)
+	task := NewTask("Hello World", &desc)
 	fmt.Println(task.String())
 
 	id := task.ID
@@ -54,7 +54,7 @@ func TestGetTask(t *testing.T) {
 // is null.
 func TestGetTaskNillable(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
-	task := New("Hello World", nil)
+	task := NewTask("Hello World", nil)
 	fmt.Println(task.String())
 
 	id := task.ID
@@ -82,7 +82,7 @@ func TestDeleteTask(t *testing.T) {
 	var taskIDs []uuid.UUID
 
 	for i := range 10 {
-		task, err := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		task, err := store.AddTask(NewTask(fmt.Sprintf("task %d", i), nil))
 		if err != nil {
 			t.Error(err)
 		}
@@ -117,7 +117,7 @@ func TestDeleteTaskNotFoundRaises(t *testing.T) {
 	var taskIDs []uuid.UUID
 
 	for i := range 10 {
-		task, err := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		task, err := store.AddTask(NewTask(fmt.Sprintf("task %d", i), nil))
 		if err != nil {
 			t.Error(err)
 		}
@@ -143,7 +143,7 @@ func TestDeleteTaskNotFoundRaises(t *testing.T) {
 
 func TestUpdateTask(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]Task, 0)}
-	task := New("task", nil)
+	task := NewTask("task", nil)
 	_, err := store.AddTask(task)
 	if err != nil {
 		t.Errorf("Failed to add task: %v", err)
@@ -171,7 +171,7 @@ func TestUpdateTaskNotFoundRaises(t *testing.T) {
 	var taskIDs []uuid.UUID
 
 	for i := range 10 {
-		task, err := store.AddTask(New(fmt.Sprintf("task %d", i), nil))
+		task, err := store.AddTask(NewTask(fmt.Sprintf("task %d", i), nil))
 		if err != nil {
 			t.Error(err)
 		}

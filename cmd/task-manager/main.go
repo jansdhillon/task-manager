@@ -26,7 +26,7 @@ func newApp() *cli.Command {
 
 	for i := range MAX_TASKS {
 		description := "world"
-		task := New(fmt.Sprintf("Task #%d", i), &description)
+		task := NewTask(fmt.Sprintf("Task #%d", i), &description)
 		store.AddTask(task)
 	}
 
@@ -53,10 +53,6 @@ func newApp() *cli.Command {
 			listCmd,
 		},
 	}
-}
-
-func actionSetup(c *cli.Command) (err error) {
-	return nil
 }
 
 func main() {

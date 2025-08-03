@@ -2,6 +2,7 @@ package internal
 
 import (
 	"context"
+	"strconv"
 	"testing"
 
 	pb "github.com/jansdhillon/task-manager/proto"
@@ -18,19 +19,19 @@ func TestCreateTask(t *testing.T) {
 	}
 	t.Log("Given the need to test creating a task from a TaskRequest")
 
+	store := &InMemoryTaskStore{
+		Name:  "Test Store",
+		Tasks: make([]Task, 0),
+	}
+
+	server := NewTaskServer(store)
+
 	for i, tt := range tests {
 		if tt.description != nil {
 			t.Logf("\tTest: %d\tWhen using a title of %s and a description of %v\t", i, tt.title, *tt.description)
 		} else {
 			t.Logf("\tTest: %d\tWhen using a title of %s and a description of %v\t", i, tt.title, nil)
 		}
-
-		store := &InMemoryTaskStore{
-			Name:  "Test Store",
-			Tasks: make([]Task, 0),
-		}
-
-		server := NewTaskServer(store)
 
 		req := &pb.CreateTaskRequest{
 			Title:       tt.title,
@@ -75,5 +76,53 @@ func TestCreateTask(t *testing.T) {
 		}
 
 		t.Logf("\t\tShould create task successfully")
+	}
+}
+
+// TestUpdateTaskServer tests the behavior of
+// TaskServer.UpdateTeask
+func TestUpdateTaskServer(t *testing.T) {
+	newTitle := "new title"
+	newDescription := "new description"
+	var nilDescription string
+
+	tt := []struct {
+		title       string
+		description *string
+	}{
+		{newTitle, &newDescription},
+		{newTitle, &nilDescription},
+	}
+
+	store := &InMemoryTaskStore{
+		Name:  "Test Store",
+		Tasks: make([]Task, 0),
+	}
+
+	server := NewTaskServer(store)
+
+	for i, tc := range tt {
+		desc := "original description"
+		originalTask := NewTask(strconv.Itoa(i), &desc)
+		createdTask, _ := store.AddTask(originalTask)
+
+		req := &pb.UpdateTaskRequest{
+			Id:          createdTask.ID.String(),
+			Title:       tc.title,
+			Description: tc.description,
+		}
+
+		res, err := server.UpdateTask(context.Background(), req)
+
+		if err != nil {
+			t.Errorf("Expected no error, got %v", err)
+		}
+
+		updatedTask := res.Task
+
+		if updatedTask.Title == originalTask.Title || (updatedTask.Description != nil && updatedTask.Description == originalTask.Description) {
+			t.Errorf("Task was not updated!")
+		}
+
 	}
 }

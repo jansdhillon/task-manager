@@ -33,7 +33,7 @@ func (t *Task) String() string {
 		t.ID, t.Title, description, t.LastUpdatedAt, t.CreatedAt, t.Deleted)
 }
 
-func New(title string, description *string) *Task {
+func NewTask(title string, description *string) *Task {
 	return &Task{
 		ID:            uuid.New(),
 		Title:         title,
