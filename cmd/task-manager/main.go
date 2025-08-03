@@ -1,64 +1,31 @@
-// The main package for the Task Manager executable
-
 package main
 
 import (
-	"context"
-	"fmt"
 	"log"
-	"os"
+	"net"
 
 	. "github.com/jansdhillon/task-manager/internal"
-	cli "github.com/urfave/cli/v3"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 )
-
-const (
-	listFlag = "list"
-)
-
-func newApp() *cli.Command {
-	tasks := make([]Task, 0, MAX_TASKS)
-
-	store := &InMemoryTaskStore{
-		Name:  "Huel",
-		Tasks: tasks,
-	}
-
-	for i := range MAX_TASKS {
-		description := "world"
-		task := NewTask(fmt.Sprintf("Task #%d", i), &description)
-		store.AddTask(task)
-	}
-
-	listCmd := &cli.Command{
-		Name:  "tasks",
-		Usage: "Show tasks in the store.",
-		Action: func(context.Context, *cli.Command) error {
-			for _, task := range store.Tasks {
-				fmt.Printf("Task: %s\n", task.String())
-			}
-			return nil
-		},
-	}
-	return &cli.Command{
-		Usage: "Manage tasks.",
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:    listFlag,
-				Aliases: []string{"l"},
-				Usage:   "List the tasks.",
-			},
-		},
-		Commands: []*cli.Command{
-			listCmd,
-		},
-	}
-}
 
 func main() {
-	app := newApp()
+	store := &InMemoryTaskStore{
+		Name:  "TaskManager",
+		Tasks: make([]Task, 0, MAX_TASKS),
+	}
 
-	if err := app.Run(context.Background(), os.Args); err != nil {
-		log.Fatal(err)
+	lis, err := net.Listen("tcp", ":8080")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	s := grpc.NewServer()
+	RegisterTaskService(s, store)
+	reflection.Register(s)
+
+	log.Printf("gRPC server listening on :8080")
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
 }
