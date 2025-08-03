@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	task "github.com/jansdhillon/task-manager/internal/task"
+	. "github.com/jansdhillon/task-manager/internal"
 	cli "github.com/urfave/cli/v3"
 )
 
@@ -17,16 +17,16 @@ const (
 )
 
 func newApp() *cli.Command {
-	tasks := make([]task.Task, 0, task.MAX_TASKS)
+	tasks := make([]Task, 0, MAX_TASKS)
 
-	store := &task.InMemoryTaskStore{
+	store := &InMemoryTaskStore{
 		Name:  "Huel",
 		Tasks: tasks,
 	}
 
-	for i := range task.MAX_TASKS {
+	for i := range MAX_TASKS {
 		description := "world"
-		task := task.New(fmt.Sprintf("Task #%d", i), &description)
+		task := New(fmt.Sprintf("Task #%d", i), &description)
 		store.AddTask(task)
 	}
 
