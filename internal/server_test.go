@@ -7,7 +7,10 @@ import (
 	pb "github.com/jansdhillon/task-manager/proto"
 )
 
-func TestCreateTask(t *testing.T) {
+// TestCreateTaskServer tests the behavior of TaskServer.CreateTask.
+// It verifies that tasks can be created with both nil and non-nil descriptions,
+// and that all required fields are properly set on the created task.
+func TestCreateTaskServer(t *testing.T) {
 	notNullDesc := "world"
 	tests := []struct {
 		title       string
@@ -78,6 +81,9 @@ func TestCreateTask(t *testing.T) {
 	}
 }
 
+// TestUpdateTaskServer tests the behavior of TaskServer.UpdateTask.
+// It verifies that existing tasks can be updated with different description scenarios
+// (with description, empty description, nil description) and that timestamps are updated.
 func TestUpdateTaskServer(t *testing.T) {
 	newTitle := "updated title"
 	newDescription := "updated description"
@@ -148,6 +154,9 @@ func TestUpdateTaskServer(t *testing.T) {
 	}
 }
 
+// TestGetTaskServer tests the behavior of TaskServer.GetTask.
+// It verifies that existing tasks can be retrieved successfully and that
+// appropriate errors are returned for non-existent tasks.
 func TestGetTaskServer(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -225,6 +234,9 @@ func TestGetTaskServer(t *testing.T) {
 	}
 }
 
+// TestDeleteTaskServer tests the behavior of TaskServer.DeleteTask.
+// It verifies that existing tasks can be deleted successfully and that
+// appropriate errors are returned for non-existent tasks.
 func TestDeleteTaskServer(t *testing.T) {
 	tests := []struct {
 		name        string
