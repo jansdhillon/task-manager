@@ -1,7 +1,6 @@
 name: Build and Deploy to GCP
 on:
     workflow_dispatch:
-            
     push:
         branches: 
             - main
@@ -12,6 +11,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      packages: write
     steps:
       - name: 'Checkout'
         uses: 'actions/checkout@v3'
@@ -25,26 +25,24 @@ jobs:
           project_id: '${{ vars.GCP_PROJECT_ID }}'
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
-      - name: Login to GCR
+      - name: Login to GCP
         run: gcloud auth login --cred-file=${{steps.auth.outputs.credentials_file_path}}
-      - name: Use gcloud CLI
-        run: gcloud info
-      - name: Authenticate Docker with GCR
+      - name: Authenticate Docker with GHCR
         run: |-
-          gcloud auth print-access-token --impersonate-service-account ${{ vars.SERVICE_ACCOUNT_EMAIL }} | docker login -u oauth2accesstoken --password-stdin gcr.io
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       - name: Build Docker Image
         run: |
           docker buildx build \
-            -t gcr.io/${{ vars.ARTIFACT_REPO }} \
+            -t ghcr.io/jansdhillon/${{ vars.ARTIFACT_REPO }}:latest \
             .
 
       - name: Push Docker Image to GCR
-        run: docker push gcr.io/${{ vars.ARTIFACT_REPO }}
+        run: docker push ghcr.io/jansdhillon/${{ vars.ARTIFACT_REPO }}:latest
 
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ vars.SERVICE_NAME }} \
-            --image gcr.io/${{ vars.ARTIFACT_REPO }} \
+            --image ghcr.io/jansdhillon/${{ vars.ARTIFACT_REPO }}:latest \
             --region ${{ vars.REGION }} \
             --project ${{ vars.GCP_PROJECT_ID }} \
             --platform managed \
