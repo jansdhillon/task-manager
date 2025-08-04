@@ -30,19 +30,24 @@ jobs:
       - name: Authenticate Docker with GHCR
         run: |-
           echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Build Docker Image
+      - name: Authenticate Docker with GCR
+        run: |-
+          gcloud auth print-access-token --impersonate-service-account ${{ vars.SERVICE_ACCOUNT_EMAIL }} | docker login -u oauth2accesstoken --password-stdin gcr.io
+      - name: Build Docker image
         run: |
           docker buildx build \
-            -t ghcr.io/jansdhillon/${{ vars.ARTIFACT_REPO }}:latest \
+            -t ghcr.io/jansdhillon/${{ vars.SERVICE_NAME }}:latest \
             .
-
-      - name: Push Docker Image to GCR
-        run: docker push ghcr.io/jansdhillon/${{ vars.ARTIFACT_REPO }}:latest
-
+      - name: Push Docker Image to GHCR
+        run: docker push ghcr.io/jansdhillon/${{ vars.SERVICE_NAME }}:latest
+      - name: Push to GCR
+        run: |
+          docker tag ghcr.io/jansdhillon/${{ vars.SERVICE_NAME }}:latest gcr.io/${{ vars.ARTIFACT_REPO }}
+          docker push gcr.io/${{ vars.ARTIFACT_REPO }}
       - name: Deploy to Cloud Run
         run: |
           gcloud run deploy ${{ vars.SERVICE_NAME }} \
-            --image ghcr.io/jansdhillon/${{ vars.ARTIFACT_REPO }}:latest \
+            --image gcr.io/${{ vars.ARTIFACT_REPO }} \
             --region ${{ vars.REGION }} \
             --project ${{ vars.GCP_PROJECT_ID }} \
             --platform managed \
