@@ -8,6 +8,24 @@ import (
 	"github.com/google/uuid"
 )
 
+type Status int
+
+const (
+	NotStarted Status = iota
+	InProgress
+	Completed
+)
+
+var statusName = map[Status]string{
+	NotStarted: "not_started",
+	InProgress: "in_progress",
+	Completed:  "completed",
+}
+
+func (s Status) String() string {
+	return statusName[s]
+}
+
 type Task struct {
 	ID            uuid.UUID `json:"id"`
 	Title         string    `json:"title"`
@@ -15,6 +33,7 @@ type Task struct {
 	CreatedAt     time.Time `json:"created_at"`
 	LastUpdatedAt time.Time `json:"last_updated_at"`
 	Deleted       bool      `json:"deleted"`
+	Status        Status    `json:"status"`
 }
 
 type TaskStore interface {
