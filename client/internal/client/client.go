@@ -7,7 +7,7 @@ import (
 
 	pb "github.com/jansdhillon/task-manager/proto"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
 )
 
 type TaskClient struct {
@@ -18,7 +18,7 @@ type TaskClient struct {
 var NewTaskClient = newTaskClient
 
 func newTaskClient(address string) (*TaskClient, error) {
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(credentials.NewTLS(nil)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
 	}
