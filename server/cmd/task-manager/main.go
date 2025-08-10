@@ -4,15 +4,16 @@ import (
 	"log"
 	"net"
 
-	. "github.com/jansdhillon/task-manager/internal"
+	"github.com/jansdhillon/task-manager/server/internal/server"
+	"github.com/jansdhillon/task-manager/server/internal/task"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 func main() {
-	store := &InMemoryTaskStore{
+	store := &task.InMemoryTaskStore{
 		Name:  "TaskManager",
-		Tasks: make([]Task, 0, MAX_TASKS),
+		Tasks: make([]task.Task, 0, task.MAX_TASKS),
 	}
 
 	lis, err := net.Listen("tcp", ":8080")
@@ -21,7 +22,7 @@ func main() {
 	}
 
 	s := grpc.NewServer()
-	RegisterTaskService(s, store)
+	server.RegisterTaskService(s, store)
 	reflection.Register(s)
 
 	log.Printf("gRPC server listening on :8080")

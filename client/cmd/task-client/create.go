@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	client "github.com/jansdhillon/task-client/internal/client"
+	"github.com/jansdhillon/task-manager/client/internal/client"
 	"github.com/urfave/cli/v3"
 )
 

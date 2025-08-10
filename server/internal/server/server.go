@@ -1,4 +1,4 @@
-package internal
+package server
 
 import (
 	"context"
@@ -6,16 +6,17 @@ import (
 
 	"github.com/google/uuid"
 	pb "github.com/jansdhillon/task-manager/proto"
+	"github.com/jansdhillon/task-manager/server/internal/task"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type TaskServer struct {
 	pb.UnimplementedTaskServiceServer
-	store TaskStore
+	store task.TaskStore
 }
 
-func NewTaskServer(store TaskStore) *TaskServer {
+func NewTaskServer(store task.TaskStore) *TaskServer {
 	return &TaskServer{
 		store: store,
 	}
@@ -27,7 +28,7 @@ func (s *TaskServer) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) 
 		description = req.Description
 	}
 
-	newTask := NewTask(req.Title, description)
+	newTask := task.NewTask(req.Title, description)
 	createdTask, err := s.store.AddTask(newTask)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
@@ -96,7 +97,7 @@ func (s *TaskServer) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest) 
 	}, nil
 }
 
-func taskToProto(t *Task) *pb.Task {
+func taskToProto(t *task.Task) *pb.Task {
 	pbTask := &pb.Task{
 		Id:            t.ID.String(),
 		Title:         t.Title,
@@ -112,6 +113,6 @@ func taskToProto(t *Task) *pb.Task {
 	return pbTask
 }
 
-func RegisterTaskService(s *grpc.Server, store TaskStore) {
+func RegisterTaskService(s *grpc.Server, store task.TaskStore) {
 	pb.RegisterTaskServiceServer(s, NewTaskServer(store))
 }

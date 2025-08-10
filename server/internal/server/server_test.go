@@ -1,10 +1,11 @@
-package internal
+package server
 
 import (
 	"context"
 	"testing"
 
 	pb "github.com/jansdhillon/task-manager/proto"
+	"github.com/jansdhillon/task-manager/server/internal/task"
 )
 
 // TestCreateTaskServer tests the behavior of TaskServer.CreateTask.
@@ -21,9 +22,9 @@ func TestCreateTaskServer(t *testing.T) {
 	}
 	t.Log("Given the need to test creating a task from a TaskRequest")
 
-	store := &InMemoryTaskStore{
+	store := &task.InMemoryTaskStore{
 		Name:  "Test Store",
-		Tasks: make([]Task, 0),
+		Tasks: make([]task.Task, 0),
 	}
 
 	server := NewTaskServer(store)
@@ -104,15 +105,15 @@ func TestUpdateTaskServer(t *testing.T) {
 	for i, tt := range tests {
 		t.Logf("\tTest: %d\tWhen updating task with %s", i, tt.name)
 
-		store := &InMemoryTaskStore{
+		store := &task.InMemoryTaskStore{
 			Name:  "Test Store",
-			Tasks: make([]Task, 0),
+			Tasks: make([]task.Task, 0),
 		}
 
 		server := NewTaskServer(store)
 
 		originalDesc := "original description"
-		originalTask := NewTask("Test Task", &originalDesc)
+		originalTask := task.NewTask("Test Task", &originalDesc)
 		createdTask, _ := store.AddTask(originalTask)
 
 		req := &pb.UpdateTaskRequest{
@@ -172,9 +173,9 @@ func TestGetTaskServer(t *testing.T) {
 	for i, tt := range tests {
 		t.Logf("\tTest: %d\tWhen %s", i, tt.name)
 
-		store := &InMemoryTaskStore{
+		store := &task.InMemoryTaskStore{
 			Name:  "Test Store",
-			Tasks: make([]Task, 0),
+			Tasks: make([]task.Task, 0),
 		}
 
 		server := NewTaskServer(store)
@@ -182,7 +183,7 @@ func TestGetTaskServer(t *testing.T) {
 		var taskID string
 		if tt.setupTask {
 			desc := "test description"
-			task := NewTask("Test Task", &desc)
+			task := task.NewTask("Test Task", &desc)
 			createdTask, _ := store.AddTask(task)
 			taskID = createdTask.ID.String()
 		} else {
@@ -252,9 +253,9 @@ func TestDeleteTaskServer(t *testing.T) {
 	for i, tt := range tests {
 		t.Logf("\tTest: %d\tWhen %s", i, tt.name)
 
-		store := &InMemoryTaskStore{
+		store := &task.InMemoryTaskStore{
 			Name:  "Test Store",
-			Tasks: make([]Task, 0),
+			Tasks: make([]task.Task, 0),
 		}
 
 		server := NewTaskServer(store)
@@ -262,7 +263,7 @@ func TestDeleteTaskServer(t *testing.T) {
 		var taskID string
 		if tt.setupTask {
 			desc := "test description"
-			task := NewTask("Test Task", &desc)
+			task := task.NewTask("Test Task", &desc)
 			createdTask, _ := store.AddTask(task)
 			taskID = createdTask.ID.String()
 		} else {

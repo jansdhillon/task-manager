@@ -1,4 +1,4 @@
-module github.com/jansdhillon/task-client
+module github.com/jansdhillon/task-manager/client
 
 go 1.24
 

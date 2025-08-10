@@ -1,28 +1,31 @@
 name: Build and Deploy to GCP
 on:
-    workflow_dispatch:
-    push:
-        branches: 
-            - main
+  workflow_dispatch:
+  push:
+    branches:
+      - main
 jobs:
   build:
     environment: prod
+    defaults:
+      run:
+        working-directory: ./server
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
       packages: write
     steps:
-      - name: 'Checkout'
-        uses: 'actions/checkout@v3'
-      - name: 'Google auth'
-        id: 'auth'
-        uses: 'google-github-actions/auth@v2'
+      - name: "Checkout"
+        uses: "actions/checkout@v3"
+      - name: "Google auth"
+        id: "auth"
+        uses: "google-github-actions/auth@v2"
         with:
           create_credentials_file: true
-          workload_identity_provider: '${{ vars.WORKLOAD_IDENTITY_PROVIDER }}'
-          service_account: '${{ vars.SERVICE_ACCOUNT_EMAIL }}'
-          project_id: '${{ vars.GCP_PROJECT_ID }}'
+          workload_identity_provider: "${{ vars.WORKLOAD_IDENTITY_PROVIDER }}"
+          service_account: "${{ vars.SERVICE_ACCOUNT_EMAIL }}"
+          project_id: "${{ vars.GCP_PROJECT_ID }}"
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
       - name: Login to GCP
