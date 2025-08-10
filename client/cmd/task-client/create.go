@@ -5,37 +5,27 @@ import (
 	"fmt"
 	"log"
 
-	. "github.com/jansdhillon/task-client/internal"
+	client "github.com/jansdhillon/task-client/internal/client"
 	"github.com/urfave/cli/v3"
-)
-
-const (
-	titleFlag       = "title"
-	descriptionFlag = "description"
 )
 
 var createCmd = &cli.Command{
 	Name:  "create",
 	Usage: "Create a task with a title and, optionally, a description.",
 	Action: func(ctx context.Context, cmd *cli.Command) error {
-		if cmd.NArg() != 1 {
-			return cli.Exit("Exactly one argument expected for address.", 1)
+		if cmd.NArg() == 0 || cmd.NArg() > 2 {
+			return cli.Exit("Expected one or two arguments.", 1)
 		}
 
-		title := cmd.String(titleFlag)
-		description := cmd.String(descriptionFlag)
+		address := cmd.String(serverAddressFlag)
+		title := cmd.Args().Get(0)
+		description := cmd.Args().Get(1)
+		var desc *string
+		if description != "" {
+			desc = &description
+		}
 
-		address := cmd.Args().Get(0)
-
-		log.Printf("address: %s", address)
-		log.Printf("title: %s", title)
-		log.Printf("description: %T", description)
-
-		result, err := ExecuteWithClient(address, func(c *TaskClient) (any, error) {
-			var desc *string
-			if description != "" {
-				desc = &description
-			}
+		result, err := client.ExecuteWithClient(address, func(c *client.TaskClient) (any, error) {
 			return c.CreateTask(ctx, title, desc)
 		})
 
@@ -43,22 +33,8 @@ var createCmd = &cli.Command{
 			errMsg := fmt.Sprintf("Error creating task: %v", err)
 			return cli.Exit(errMsg, 1)
 		}
-		log.Printf("Result: %s", result)
+		log.Printf("Result task: %s", result)
 
 		return nil
-	},
-	Flags: []cli.Flag{
-		&cli.StringFlag{
-			Name:     titleFlag,
-			Usage:    "The title of the task to create.",
-			Aliases:  []string{"t"},
-			Required: true,
-		},
-		&cli.StringFlag{
-			Name:     descriptionFlag,
-			Usage:    "(Optional) The description of the task to create.",
-			Aliases:  []string{"d"},
-			Required: false,
-		},
 	},
 }
