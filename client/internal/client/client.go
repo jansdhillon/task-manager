@@ -1,4 +1,4 @@
-package main
+package internal
 
 import (
 	"context"
@@ -15,7 +15,9 @@ type TaskClient struct {
 	conn   *grpc.ClientConn
 }
 
-func NewTaskClient(address string) (*TaskClient, error) {
+var NewTaskClient = newTaskClient
+
+func newTaskClient(address string) (*TaskClient, error) {
 	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
@@ -91,7 +93,7 @@ func (c *TaskClient) DeleteTask(ctx context.Context, id string) (bool, error) {
 	return resp.Success, nil
 }
 
-func executeWithClient(address string, fn func(*TaskClient) (any, error)) (any, error) {
+func ExecuteWithClient(address string, fn func(*TaskClient) (any, error)) (any, error) {
 	c, err := NewTaskClient(address)
 	if err != nil {
 		log.Printf("error creating client: %v", err)
