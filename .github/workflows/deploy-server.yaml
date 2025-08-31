@@ -39,6 +39,9 @@ jobs:
       - name: Build Docker image
         run: |
           docker buildx build \
+            --build-arg GCP_PROJECT_ID="${{ vars.GCP_PROJECT_ID }}" \
+            --build-arg POSTGRES_HOST="${{ secrets.POSTGRES_HOST }}" \
+            --build-arg POSTGRES_USER="${{ secrets.POSTGRES_USER }}" \
             -t ghcr.io/jansdhillon/${{ vars.SERVICE_NAME }}:latest \
             .
       - name: Push Docker Image to GHCR
