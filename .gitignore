@@ -1,0 +1,6 @@
+task-client
+!cmd/task-client
+task-manager
+!cmd/task-manager
+google_application_credentials.*
+.env

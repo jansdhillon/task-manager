@@ -2,301 +2,491 @@ package server
 
 import (
 	"context"
+	"net"
+	"strings"
 	"testing"
 
+	"github.com/google/uuid"
 	pb "github.com/jansdhillon/task-manager/proto"
 	"github.com/jansdhillon/task-manager/server/internal/task"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
 )
 
-// TestCreateTaskServer tests the behavior of TaskServer.CreateTask.
-// It verifies that tasks can be created with both nil and non-nil descriptions,
-// and that all required fields are properly set on the created task.
-func TestCreateTaskServer(t *testing.T) {
-	notNullDesc := "world"
-	tests := []struct {
-		title       string
-		description *string
-	}{
-		{"hello", &notNullDesc},
-		{"hello", nil},
-	}
-	t.Log("Given the need to test creating a task from a TaskRequest")
+func setupTestServer(t *testing.T) (*TaskServer, pb.TaskServiceClient, func()) {
+	t.Helper()
 
 	store := &task.InMemoryTaskStore{
 		Name:  "Test Store",
 		Tasks: make([]task.Task, 0),
 	}
 
-	server := NewTaskServer(store)
+	taskServer := NewTaskServer(store)
 
-	for i, tt := range tests {
-		if tt.description != nil {
-			t.Logf("\tTest: %d\tWhen using a title of %s and a description of %v\t", i, tt.title, *tt.description)
-		} else {
-			t.Logf("\tTest: %d\tWhen using a title of %s and a description of %v\t", i, tt.title, nil)
+	lis := bufconn.Listen(1024 * 1024)
+	s := grpc.NewServer()
+	pb.RegisterTaskServiceServer(s, taskServer)
+
+	go func() {
+		if err := s.Serve(lis); err != nil {
+			t.Logf("Server exited with error: %v", err)
 		}
+	}()
 
-		req := &pb.CreateTaskRequest{
-			Title:       tt.title,
-			Description: tt.description,
-		}
-
-		resp, err := server.CreateTask(context.Background(), req)
-		if err != nil {
-			t.Fatalf("\t\tShould be able to create task but got error: %v", err)
-		}
-
-		if resp.Task.Title != tt.title {
-			t.Errorf("\t\tExpected title %q but got %q", tt.title, resp.Task.Title)
-		}
-
-		if tt.description != nil {
-			if resp.Task.Description == nil {
-				t.Errorf("\t\tExpected description %q but got nil", *tt.description)
-			} else if *resp.Task.Description != *tt.description {
-				t.Errorf("\t\tExpected description %q but got %q", *tt.description, *resp.Task.Description)
-			}
-		} else {
-			if resp.Task.Description != nil {
-				t.Errorf("\t\tExpected nil description but got %q", *resp.Task.Description)
-			}
-		}
-
-		if resp.Task.Id == "" {
-			t.Error("\t\tExpected task to have an ID")
-		}
-
-		if resp.Task.CreatedAt == nil {
-			t.Error("\t\tExpected task to have a creation timestamp")
-		}
-
-		if resp.Task.LastUpdatedAt == nil {
-			t.Error("\t\tExpected task to have a last updated timestamp")
-		}
-
-		if resp.Task.Deleted {
-			t.Error("\t\tExpected task to not be deleted")
-		}
-
-		t.Logf("\t\tShould create task successfully")
+	conn, err := grpc.NewClient(
+		"passthrough:///bufnet",
+		grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return lis.Dial()
+		}),
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+	)
+	if err != nil {
+		t.Fatalf("Failed to dial bufnet: %v", err)
 	}
+
+	client := pb.NewTaskServiceClient(conn)
+
+	cleanup := func() {
+		conn.Close()
+		s.Stop()
+	}
+
+	return taskServer, client, cleanup
 }
 
-// TestUpdateTaskServer tests the behavior of TaskServer.UpdateTask.
-// It verifies that existing tasks can be updated with different description scenarios
-// (with description, empty description, nil description) and that timestamps are updated.
-func TestUpdateTaskServer(t *testing.T) {
-	newTitle := "updated title"
-	newDescription := "updated description"
-	emptyDescription := ""
-
-	tests := []struct {
-		name        string
-		title       string
-		description *string
-	}{
-		{"update with description", newTitle, &newDescription},
-		{"update with empty description", newTitle, &emptyDescription},
-		{"update with nil description", newTitle, nil},
-	}
-
-	t.Log("Given the need to test updating a task")
-
-	for i, tt := range tests {
-		t.Logf("\tTest: %d\tWhen updating task with %s", i, tt.name)
-
-		store := &task.InMemoryTaskStore{
-			Name:  "Test Store",
-			Tasks: make([]task.Task, 0),
-		}
-
-		server := NewTaskServer(store)
-
-		originalDesc := "original description"
-		originalTask := task.NewTask("Test Task", &originalDesc)
-		createdTask, _ := store.AddTask(originalTask)
-
-		req := &pb.UpdateTaskRequest{
-			Id:          createdTask.ID.String(),
-			Title:       tt.title,
-			Description: tt.description,
-		}
-
-		resp, err := server.UpdateTask(context.Background(), req)
-		if err != nil {
-			t.Fatalf("\t\tShould be able to update task but got error: %v", err)
-		}
-
-		if resp.Task.Title != tt.title {
-			t.Errorf("\t\tExpected title %q but got %q", tt.title, resp.Task.Title)
-		}
-
-		if tt.description != nil {
-			if resp.Task.Description == nil {
-				t.Errorf("\t\tExpected description %q but got nil", *tt.description)
-			} else if *resp.Task.Description != *tt.description {
-				t.Errorf("\t\tExpected description %q but got %q", *tt.description, *resp.Task.Description)
-			}
-		} else {
-			if resp.Task.Description != nil {
-				t.Errorf("\t\tExpected nil description but got %q", *resp.Task.Description)
-			}
-		}
-
-		if resp.Task.Id != createdTask.ID.String() {
-			t.Errorf("\t\tExpected task ID to remain %q but got %q", createdTask.ID.String(), resp.Task.Id)
-		}
-
-		if resp.Task.LastUpdatedAt == nil {
-			t.Error("\t\tExpected task to have updated timestamp")
-		}
-
-		t.Logf("\t\tShould update task successfully")
-	}
+func stringPtr(s string) *string {
+	return &s
 }
 
-// TestGetTaskServer tests the behavior of TaskServer.GetTask.
-// It verifies that existing tasks can be retrieved successfully and that
-// appropriate errors are returned for non-existent tasks.
-func TestGetTaskServer(t *testing.T) {
+func TestTaskServer_CreateTask(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupTask   bool
-		expectError bool
+		request     *pb.CreateTaskRequest
+		wantErr     bool
+		wantErrCode codes.Code
+		validate    func(t *testing.T, resp *pb.CreateTaskResponse)
 	}{
-		{"get existing task", true, false},
-		{"get non-existent task", false, true},
+		{
+			name: "create task with title only",
+			request: &pb.CreateTaskRequest{
+				Title: "Test Task",
+			},
+			wantErr: false,
+			validate: func(t *testing.T, resp *pb.CreateTaskResponse) {
+				if resp.Task.Title != "Test Task" {
+					t.Errorf("Expected title 'Test Task', got %q", resp.Task.Title)
+				}
+				if resp.Task.Description != nil {
+					t.Errorf("Expected nil description, got %v", resp.Task.Description)
+				}
+				if resp.Task.Id == "" {
+					t.Error("Expected non-empty task ID")
+				}
+				if resp.Task.CreatedAt == nil {
+					t.Error("Expected non-nil CreatedAt")
+				}
+				if resp.Task.LastUpdatedAt == nil {
+					t.Error("Expected non-nil LastUpdatedAt")
+				}
+				if resp.Task.Deleted {
+					t.Error("Expected task to not be deleted")
+				}
+			},
+		},
+		{
+			name: "create task with title and description",
+			request: &pb.CreateTaskRequest{
+				Title:       "Task with Description",
+				Description: stringPtr("This is a test description"),
+			},
+			wantErr: false,
+			validate: func(t *testing.T, resp *pb.CreateTaskResponse) {
+				if resp.Task.Title != "Task with Description" {
+					t.Errorf("Expected title 'Task with Description', got %q", resp.Task.Title)
+				}
+				if resp.Task.Description == nil {
+					t.Error("Expected non-nil description")
+				} else if *resp.Task.Description != "This is a test description" {
+					t.Errorf("Expected description 'This is a test description', got %q", *resp.Task.Description)
+				}
+			},
+		},
+		{
+			name: "create task with empty description",
+			request: &pb.CreateTaskRequest{
+				Title:       "Task with Empty Description",
+				Description: stringPtr(""),
+			},
+			wantErr: false,
+			validate: func(t *testing.T, resp *pb.CreateTaskResponse) {
+				if resp.Task.Description == nil {
+					t.Error("Expected non-nil description")
+				} else if *resp.Task.Description != "" {
+					t.Errorf("Expected empty description, got %q", *resp.Task.Description)
+				}
+			},
+		},
 	}
 
-	t.Log("Given the need to test getting a task")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, client, cleanup := setupTestServer(t)
+			defer cleanup()
 
-	for i, tt := range tests {
-		t.Logf("\tTest: %d\tWhen %s", i, tt.name)
+			resp, err := client.CreateTask(context.Background(), tt.request)
 
-		store := &task.InMemoryTaskStore{
-			Name:  "Test Store",
-			Tasks: make([]task.Task, 0),
-		}
-
-		server := NewTaskServer(store)
-
-		var taskID string
-		if tt.setupTask {
-			desc := "test description"
-			task := task.NewTask("Test Task", &desc)
-			createdTask, _ := store.AddTask(task)
-			taskID = createdTask.ID.String()
-		} else {
-			taskID = "non-existent-id"
-		}
-
-		req := &pb.GetTaskRequest{
-			Id: taskID,
-		}
-
-		resp, err := server.GetTask(context.Background(), req)
-
-		if tt.expectError {
-			if err == nil {
-				t.Fatalf("\t\tShould receive error for non-existent task but got nil")
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error, got nil")
+					return
+				}
+				if tt.wantErrCode != codes.OK {
+					st, ok := status.FromError(err)
+					if !ok {
+						t.Errorf("Expected gRPC status error, got %T", err)
+						return
+					}
+					if st.Code() != tt.wantErrCode {
+						t.Errorf("Expected error code %v, got %v", tt.wantErrCode, st.Code())
+					}
+				}
+				return
 			}
-			t.Logf("\t\tShould return error for non-existent task")
-		} else {
+
 			if err != nil {
-				t.Fatalf("\t\tShould be able to get task but got error: %v", err)
+				t.Errorf("Unexpected error: %v", err)
+				return
 			}
 
-			if resp.Task.Id != taskID {
-				t.Errorf("\t\tExpected task ID %q but got %q", taskID, resp.Task.Id)
+			if tt.validate != nil {
+				tt.validate(t, resp)
 			}
-
-			if resp.Task.Title != "Test Task" {
-				t.Errorf("\t\tExpected task title %q but got %q", "Test Task", resp.Task.Title)
-			}
-
-			if resp.Task.Description == nil || *resp.Task.Description != "test description" {
-				t.Errorf("\t\tExpected task description %q but got %v", "test description", resp.Task.Description)
-			}
-
-			if resp.Task.CreatedAt == nil {
-				t.Error("\t\tExpected task to have a creation timestamp")
-			}
-
-			if resp.Task.LastUpdatedAt == nil {
-				t.Error("\t\tExpected task to have a last updated timestamp")
-			}
-
-			if resp.Task.Deleted {
-				t.Error("\t\tExpected task to not be deleted")
-			}
-
-			t.Logf("\t\tShould get task successfully")
-		}
+		})
 	}
 }
 
-// TestDeleteTaskServer tests the behavior of TaskServer.DeleteTask.
-// It verifies that existing tasks can be deleted successfully and that
-// appropriate errors are returned for non-existent tasks.
-func TestDeleteTaskServer(t *testing.T) {
+func TestTaskServer_UpdateTask(t *testing.T) {
 	tests := []struct {
 		name        string
-		setupTask   bool
-		expectError bool
+		setupTask   func(t *testing.T, server *TaskServer) string
+		request     *pb.UpdateTaskRequest
+		wantErr     bool
+		wantErrCode codes.Code
+		validate    func(t *testing.T, resp *pb.UpdateTaskResponse, originalTaskID string)
 	}{
-		{"delete existing task", true, false},
-		{"delete non-existent task", false, true},
+		{
+			name: "update existing task title and description",
+			setupTask: func(t *testing.T, server *TaskServer) string {
+				resp, err := server.CreateTask(context.Background(), &pb.CreateTaskRequest{
+					Title:       "Original Title",
+					Description: stringPtr("Original Description"),
+				})
+				if err != nil {
+					t.Fatalf("Failed to create test task: %v", err)
+				}
+				return resp.Task.Id
+			},
+			request: &pb.UpdateTaskRequest{
+				Title:       "Updated Title",
+				Description: stringPtr("Updated Description"),
+			},
+			wantErr: false,
+			validate: func(t *testing.T, resp *pb.UpdateTaskResponse, originalTaskID string) {
+				if resp.Task.Id != originalTaskID {
+					t.Errorf("Expected task ID %q, got %q", originalTaskID, resp.Task.Id)
+				}
+				if resp.Task.Title != "Updated Title" {
+					t.Errorf("Expected title 'Updated Title', got %q", resp.Task.Title)
+				}
+				if resp.Task.Description == nil {
+					t.Error("Expected non-nil description")
+				} else if *resp.Task.Description != "Updated Description" {
+					t.Errorf("Expected description 'Updated Description', got %q", *resp.Task.Description)
+				}
+			},
+		},
+		{
+			name: "update task with nil description",
+			setupTask: func(t *testing.T, server *TaskServer) string {
+				resp, err := server.CreateTask(context.Background(), &pb.CreateTaskRequest{
+					Title:       "Original Title",
+					Description: stringPtr("Original Description"),
+				})
+				if err != nil {
+					t.Fatalf("Failed to create test task: %v", err)
+				}
+				return resp.Task.Id
+			},
+			request: &pb.UpdateTaskRequest{
+				Title:       "Updated Title",
+				Description: nil,
+			},
+			wantErr: false,
+			validate: func(t *testing.T, resp *pb.UpdateTaskResponse, originalTaskID string) {
+				if resp.Task.Description != nil {
+					t.Errorf("Expected nil description, got %q", *resp.Task.Description)
+				}
+			},
+		},
+		{
+			name: "update non-existent task",
+			setupTask: func(t *testing.T, server *TaskServer) string {
+				return uuid.New().String()
+			},
+			request: &pb.UpdateTaskRequest{
+				Title: "Updated Title",
+			},
+			wantErr:     true,
+			wantErrCode: codes.Unknown,
+		},
+		{
+			name: "update task with invalid UUID",
+			setupTask: func(t *testing.T, server *TaskServer) string {
+				return "invalid-uuid"
+			},
+			request: &pb.UpdateTaskRequest{
+				Title: "Updated Title",
+			},
+			wantErr:     true,
+			wantErrCode: codes.Unknown,
+		},
 	}
 
-	t.Log("Given the need to test deleting a task")
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server, client, cleanup := setupTestServer(t)
+			defer cleanup()
 
-	for i, tt := range tests {
-		t.Logf("\tTest: %d\tWhen %s", i, tt.name)
+			taskID := tt.setupTask(t, server)
+			tt.request.Id = taskID
 
-		store := &task.InMemoryTaskStore{
-			Name:  "Test Store",
-			Tasks: make([]task.Task, 0),
-		}
+			resp, err := client.UpdateTask(context.Background(), tt.request)
 
-		server := NewTaskServer(store)
-
-		var taskID string
-		if tt.setupTask {
-			desc := "test description"
-			task := task.NewTask("Test Task", &desc)
-			createdTask, _ := store.AddTask(task)
-			taskID = createdTask.ID.String()
-		} else {
-			taskID = "non-existent-id"
-		}
-
-		req := &pb.DeleteTaskRequest{
-			Id: taskID,
-		}
-
-		resp, err := server.DeleteTask(context.Background(), req)
-
-		if tt.expectError {
-			if err == nil {
-				t.Fatalf("\t\tShould receive error for non-existent task but got nil")
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error, got nil")
+					return
+				}
+				if tt.wantErrCode != codes.OK {
+					st, ok := status.FromError(err)
+					if !ok {
+						t.Errorf("Expected gRPC status error, got %T", err)
+						return
+					}
+					if st.Code() != tt.wantErrCode {
+						t.Errorf("Expected error code %v, got %v", tt.wantErrCode, st.Code())
+					}
+				}
+				return
 			}
-			t.Logf("\t\tShould return error for non-existent task")
-		} else {
+
 			if err != nil {
-				t.Fatalf("\t\tShould be able to delete task but got error: %v", err)
+				t.Errorf("Unexpected error: %v", err)
+				return
 			}
 
-			if !resp.Success {
-				t.Error("\t\tExpected successful deletion")
+			if tt.validate != nil {
+				tt.validate(t, resp, taskID)
+			}
+		})
+	}
+}
+
+func TestTaskServer_GetTask(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupTask   func(t *testing.T, server *TaskServer) string
+		wantErr     bool
+		wantErrCode codes.Code
+		validate    func(t *testing.T, resp *pb.GetTaskResponse, expectedTaskID string)
+	}{
+		{
+			name: "get existing task",
+			setupTask: func(t *testing.T, server *TaskServer) string {
+				resp, err := server.CreateTask(context.Background(), &pb.CreateTaskRequest{
+					Title:       "Test Task",
+					Description: stringPtr("Test Description"),
+				})
+				if err != nil {
+					t.Fatalf("Failed to create test task: %v", err)
+				}
+				return resp.Task.Id
+			},
+			wantErr: false,
+			validate: func(t *testing.T, resp *pb.GetTaskResponse, expectedTaskID string) {
+				if resp.Task.Id != expectedTaskID {
+					t.Errorf("Expected task ID %q, got %q", expectedTaskID, resp.Task.Id)
+				}
+				if resp.Task.Title != "Test Task" {
+					t.Errorf("Expected title 'Test Task', got %q", resp.Task.Title)
+				}
+				if resp.Task.Description == nil {
+					t.Error("Expected non-nil description")
+				} else if *resp.Task.Description != "Test Description" {
+					t.Errorf("Expected description 'Test Description', got %q", *resp.Task.Description)
+				}
+				if resp.Task.CreatedAt == nil {
+					t.Error("Expected non-nil CreatedAt")
+				}
+				if resp.Task.LastUpdatedAt == nil {
+					t.Error("Expected non-nil LastUpdatedAt")
+				}
+				if resp.Task.Deleted {
+					t.Error("Expected task to not be deleted")
+				}
+			},
+		},
+		{
+			name: "get non-existent task",
+			setupTask: func(t *testing.T, server *TaskServer) string {
+				return uuid.New().String()
+			},
+			wantErr:     true,
+			wantErrCode: codes.Unknown,
+		},
+		{
+			name: "get task with invalid UUID",
+			setupTask: func(t *testing.T, server *TaskServer) string {
+				return "invalid-uuid"
+			},
+			wantErr:     true,
+			wantErrCode: codes.Unknown,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server, client, cleanup := setupTestServer(t)
+			defer cleanup()
+
+			taskID := tt.setupTask(t, server)
+
+			resp, err := client.GetTask(context.Background(), &pb.GetTaskRequest{
+				Id: taskID,
+			})
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error, got nil")
+					return
+				}
+				if tt.wantErrCode != codes.OK {
+					st, ok := status.FromError(err)
+					if !ok {
+						t.Errorf("Expected gRPC status error, got %T", err)
+						return
+					}
+					if st.Code() != tt.wantErrCode {
+						t.Errorf("Expected error code %v, got %v", tt.wantErrCode, st.Code())
+					}
+				}
+				return
 			}
 
-			getReq := &pb.GetTaskRequest{Id: taskID}
-			_, getErr := server.GetTask(context.Background(), getReq)
-			if getErr == nil {
-				t.Error("\t\tExpected task to be deleted and not retrievable")
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
 			}
 
-			t.Logf("\t\tShould delete task successfully")
-		}
+			if tt.validate != nil {
+				tt.validate(t, resp, taskID)
+			}
+		})
+	}
+}
+
+func TestTaskServer_DeleteTask(t *testing.T) {
+	tests := []struct {
+		name        string
+		setupTask   func(t *testing.T, server *TaskServer) string
+		wantErr     bool
+		wantErrCode codes.Code
+		validate    func(t *testing.T, resp *pb.DeleteTaskResponse, taskID string, server *TaskServer)
+	}{
+		{
+			name: "delete existing task",
+			setupTask: func(t *testing.T, server *TaskServer) string {
+				resp, err := server.CreateTask(context.Background(), &pb.CreateTaskRequest{
+					Title:       "Task to Delete",
+					Description: stringPtr("This task will be deleted"),
+				})
+				if err != nil {
+					t.Fatalf("Failed to create test task: %v", err)
+				}
+				return resp.Task.Id
+			},
+			wantErr: false,
+			validate: func(t *testing.T, resp *pb.DeleteTaskResponse, taskID string, server *TaskServer) {
+				if !resp.Success {
+					t.Error("Expected successful deletion")
+				}
+				_, err := server.GetTask(context.Background(), &pb.GetTaskRequest{Id: taskID})
+				if err == nil {
+					t.Error("Expected task to be deleted and not retrievable")
+				}
+				if !strings.Contains(err.Error(), "task not found") {
+					t.Errorf("Expected 'task not found' error, got: %v", err)
+				}
+			},
+		},
+		{
+			name: "delete non-existent task",
+			setupTask: func(t *testing.T, server *TaskServer) string {
+				return uuid.New().String()
+			},
+			wantErr:     true,
+			wantErrCode: codes.Unknown,
+		},
+		{
+			name: "delete task with invalid UUID",
+			setupTask: func(t *testing.T, server *TaskServer) string {
+				return "invalid-uuid"
+			},
+			wantErr:     true,
+			wantErrCode: codes.Unknown,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			server, client, cleanup := setupTestServer(t)
+			defer cleanup()
+
+			taskID := tt.setupTask(t, server)
+
+			resp, err := client.DeleteTask(context.Background(), &pb.DeleteTaskRequest{
+				Id: taskID,
+			})
+
+			if tt.wantErr {
+				if err == nil {
+					t.Error("Expected error, got nil")
+					return
+				}
+				if tt.wantErrCode != codes.OK {
+					st, ok := status.FromError(err)
+					if !ok {
+						t.Errorf("Expected gRPC status error, got %T", err)
+						return
+					}
+					if st.Code() != tt.wantErrCode {
+						t.Errorf("Expected error code %v, got %v", tt.wantErrCode, st.Code())
+					}
+				}
+				return
+			}
+
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+				return
+			}
+
+			if tt.validate != nil {
+				tt.validate(t, resp, taskID, server)
+			}
+		})
 	}
 }

@@ -103,7 +103,7 @@ func (s *InMemoryTaskStore) DeleteTask(id uuid.UUID) error {
 	}
 
 	if !found {
-		return fmt.Errorf("Task with ID %s not found!\n", id)
+		return fmt.Errorf("task with ID %s not found", id)
 	}
 
 	s.Tasks = s.Tasks[:n]
