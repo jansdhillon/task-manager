@@ -12,11 +12,11 @@ import (
 )
 
 func getDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
-	dsn, err := sc.GetLatestVersion(ctx, "POSTGRES_DSN")
+	dsn, err := sc.GetLatestVersion(ctx, config.POSTGRES_DSN_ENV)
 	if err != nil {
 		return "", err
 	}
-	return dsn.(string), nil
+	return dsn, nil
 }
 
 func Connect() (*pgx.Conn, error) {
