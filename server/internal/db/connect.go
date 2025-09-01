@@ -12,18 +12,11 @@ import (
 )
 
 func getDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
-	password, err := sc.GetLatestVersion(ctx, "POSTGRES_PASSWORD")
+	dsn, err := sc.GetLatestVersion(ctx, "POSTGRES_DSN")
 	if err != nil {
 		return "", err
 	}
-	host := "aws-0-ca-central-1.pooler.supabase.com"
-	port := 6543
-	database := "postgres"
-	user := "postgres.iarmdhqsjqxbirfugjjc"
-
-	dsn := fmt.Sprintf("%s://%s:%s@%s:%d/%s", database, user, password, host, port, database)
-
-	return dsn, nil
+	return dsn.(string), nil
 }
 
 func Connect() (*pgx.Conn, error) {
