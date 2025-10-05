@@ -6,9 +6,5 @@ terraform {
     }
   }
   required_version = ">= 1.10"
-  backend "gcs" {
-    bucket                      = "task-manager-terraform-state"
-    prefix                      = "prod"
-    impersonate_service_account = "941741555207-compute@developer.gserviceaccount.com"
-  }
+  backend "gcs" {}
 }

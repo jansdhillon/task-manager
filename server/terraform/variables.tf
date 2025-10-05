@@ -13,11 +13,3 @@ variable "artifact_repo" {
 variable "service_name" {
   type = string
 }
-
-variable "state_bucket_name" {
-  type = string
-}
-
-variable "state_bucket_directory" {
-  type = string
-}
