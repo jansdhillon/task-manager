@@ -38,7 +38,7 @@ func main() {
 	server.RegisterTaskService(s, store)
 	reflection.Register(s)
 
-	log.Printf("gRPC server listening on port 8080")
+	log.Printf("gRPC server listening on port %s", config.SERVICE_PORT)
 	if err := s.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

@@ -16,7 +16,11 @@ func getDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return dsn, nil
+	dsnStr, ok := dsn.(string)
+	if !ok {
+		return "", fmt.Errorf("error converting DSN to a string: %s", dsnStr)
+	}
+	return dsn.(string), nil
 }
 
 func Connect() (*pgx.Conn, error) {
