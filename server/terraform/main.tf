@@ -8,6 +8,7 @@ resource "google_cloud_run_v2_service" "task_manager" {
     location = var.region
     deletion_protection = false
     ingress = "INGRESS_TRAFFIC_ALL"
+    invoker_iam_disabled = var.allow_unauthenticated
 
     template {
         containers {

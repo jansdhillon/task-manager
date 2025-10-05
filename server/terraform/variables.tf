@@ -13,3 +13,8 @@ variable "artifact_repo" {
 variable "service_name" {
   type = string
 }
+
+variable "allow_unauthenticated" {
+  type    = bool
+  default = true
+}

@@ -66,4 +66,5 @@ jobs:
             -var "gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
             -var "region=${{ vars.REGION }}" \
             -var "artifact_repo=${{ vars.ARTIFACT_REPO }}" \
-            -var "service_name=${{ vars.SERVICE_NAME }}"
+            -var "service_name=${{ vars.SERVICE_NAME }}" \
+            -var "allow_unauthenticated=true"
