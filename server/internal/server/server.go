@@ -29,12 +29,12 @@ func (s *TaskServer) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) 
 	}
 
 	newTask := task.NewTask(req.Title, description)
-	createdTask, err := s.store.AddTask(newTask)
+	createdTask, err := s.store.AddTask(ctx, newTask)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
 
-	pbTask := taskToProto(&createdTask)
+	pbTask := taskToProto(createdTask)
 	return &pb.CreateTaskResponse{
 		Task: pbTask,
 	}, nil
@@ -46,7 +46,7 @@ func (s *TaskServer) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.G
 		return nil, fmt.Errorf("invalid task ID: %w", err)
 	}
 
-	task, err := s.store.GetTask(id)
+	task, err := s.store.GetTask(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task: %w", err)
 	}
@@ -68,7 +68,7 @@ func (s *TaskServer) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest) 
 		description = req.Description
 	}
 
-	updatedTask, err := s.store.UpdateTask(id, req.Title, description)
+	updatedTask, err := s.store.UpdateTask(ctx, id, req.Title, description)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update task: %w", err)
 	}
@@ -85,7 +85,7 @@ func (s *TaskServer) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest) 
 		return nil, fmt.Errorf("invalid task ID: %w", err)
 	}
 
-	err = s.store.DeleteTask(id)
+	err = s.store.DeleteTask(ctx, id)
 	if err != nil {
 		return &pb.DeleteTaskResponse{
 			Success: false,

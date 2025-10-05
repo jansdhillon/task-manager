@@ -19,7 +19,7 @@ import (
 func main() {
 	store := &task.InMemoryTaskStore{
 		Name:  "TaskManager",
-		Tasks: make([]task.Task, 0, task.MAX_TASKS),
+		Tasks: make([]*task.Task, 0, task.MAX_TASKS),
 	}
 
 	conn, err := db.Connect()

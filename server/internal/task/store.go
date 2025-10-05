@@ -1,27 +1,21 @@
 package task
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
 )
 
-type TaskStore interface {
-	AddTask(t *Task) (Task, error)
-	DeleteTask(id uuid.UUID) error
-	UpdateTask(id uuid.UUID, title string, description *string) (*Task, error)
-	GetTask(id uuid.UUID) (*Task, error)
-}
-
 type InMemoryTaskStore struct {
 	Name  string
-	Tasks []Task
+	Tasks []*Task
 }
 
-func (s *InMemoryTaskStore) AddTask(t *Task) (Task, error) {
-	s.Tasks = append(s.Tasks, *t)
-	return *t, nil
+func (s *InMemoryTaskStore) AddTask(ctx context.Context, t *Task) (*Task, error) {
+	s.Tasks = append(s.Tasks, t)
+	return t, nil
 }
 
 const MAX_TASKS = 10
@@ -29,10 +23,10 @@ const MAX_TASKS = 10
 // GetTask will search the store for a given
 // Task by ID. If not found, an error will be
 // returned.
-func (s *InMemoryTaskStore) GetTask(id uuid.UUID) (*Task, error) {
+func (s *InMemoryTaskStore) GetTask(ctx context.Context, id uuid.UUID) (*Task, error) {
 	for i := range s.Tasks {
 		if s.Tasks[i].ID == id {
-			return &s.Tasks[i], nil
+			return s.Tasks[i], nil
 		}
 	}
 	return nil, errors.New("task not found")
@@ -40,7 +34,7 @@ func (s *InMemoryTaskStore) GetTask(id uuid.UUID) (*Task, error) {
 
 // DeleteTask takes the ID of a task and deletes it from
 // the InMemoryTaskStore.
-func (s *InMemoryTaskStore) DeleteTask(id uuid.UUID) error {
+func (s *InMemoryTaskStore) DeleteTask(ctx context.Context, id uuid.UUID) error {
 	n := 0
 	found := false
 	for _, task := range s.Tasks {
@@ -63,8 +57,8 @@ func (s *InMemoryTaskStore) DeleteTask(id uuid.UUID) error {
 }
 
 // UpdateTask updates the content of a task
-func (s *InMemoryTaskStore) UpdateTask(id uuid.UUID, title string, description *string) (*Task, error) {
-	task, err := s.GetTask(id)
+func (s *InMemoryTaskStore) UpdateTask(ctx context.Context, id uuid.UUID, title string, description *string) (*Task, error) {
+	task, err := s.GetTask(ctx, id)
 
 	if err != nil {
 		return nil, err

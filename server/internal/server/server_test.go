@@ -21,7 +21,7 @@ func setupTestServer(t *testing.T) (*TaskServer, pb.TaskServiceClient, func()) {
 
 	store := &task.InMemoryTaskStore{
 		Name:  "Test Store",
-		Tasks: make([]task.Task, 0),
+		Tasks: make([]*task.Task, 0),
 	}
 
 	taskServer := NewTaskServer(store)
