@@ -13,6 +13,7 @@ import (
 
 func getDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
 	dsn, err := sc.GetLatestVersion(ctx, config.POSTGRES_DSN_ENV)
+	dsn, err := sc.GetLatestVersion(ctx, config.POSTGRES_DSN_ENV)
 	if err != nil {
 		return "", err
 	}

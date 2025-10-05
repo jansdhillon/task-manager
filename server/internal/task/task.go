@@ -60,6 +60,7 @@ func NewTask(title string, description *string) *Task {
 		CreatedAt:     time.Now(),
 		LastUpdatedAt: time.Now(),
 		Status:        NotStarted,
+		Status:        NotStarted,
 		Deleted:       false,
 	}
 }

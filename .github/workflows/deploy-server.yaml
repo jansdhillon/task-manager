@@ -48,11 +48,20 @@ jobs:
         run: |
           docker tag ghcr.io/jansdhillon/${{ vars.SERVICE_NAME }}:latest gcr.io/${{ vars.ARTIFACT_REPO }}
           docker push gcr.io/${{ vars.ARTIFACT_REPO }}
-      - name: Deploy to Cloud Run
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.10.0
+      - name: Terraform init
+        id: init
+        working-directory: ./server/terraform
+        run: terraform init -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}" -backend-config="prefix=${{ vars.TF_STATE_BUCKET_DIR }}"
+      - name: Terraform apply
+        working-directory: ./server/terraform
         run: |
-          gcloud run deploy ${{ vars.SERVICE_NAME }} \
-            --image gcr.io/${{ vars.ARTIFACT_REPO }} \
-            --region ${{ vars.REGION }} \
-            --project ${{ vars.GCP_PROJECT_ID }} \
-            --platform managed \
-            --allow-unauthenticated
+          terraform apply -auto-approve \
+            -var "gcp_project_id=${{ vars.GCP_PROJECT_ID }}" \
+            -var "region=${{ vars.REGION }}" \
+            -var "artifact_repo=${{ vars.ARTIFACT_REPO }}" \
+            -var "service_name=${{ vars.SERVICE_NAME }}" \
+            -var "allow_unauthenticated=true"

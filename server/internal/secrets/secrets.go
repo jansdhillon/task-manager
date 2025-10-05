@@ -10,9 +10,9 @@ import (
 )
 
 type SecretsClient interface {
-	GetSecretVersion(ctx context.Context, secretName string, versionNumber int) (any, error)
+	GetSecretVersion(ctx context.Context, secretName string, versionNumber int) (string, error)
 	//CreateSecretVersion(ctx context.Context, secretName string, value any) (any, error)
-	GetLatestVersion(ctx context.Context, secretName string) (any, error)
+	GetLatestVersion(ctx context.Context, secretName string) (string, error)
 }
 
 type GcpSecretsClient struct {
@@ -35,7 +35,7 @@ func (c *GcpSecretsClient) Close() error {
 	return c.client.Close()
 }
 
-func (c *GcpSecretsClient) GetSecretVersion(ctx context.Context, secretName string, versionNumber int) (any, error) {
+func (c *GcpSecretsClient) GetSecretVersion(ctx context.Context, secretName string, versionNumber int) (string, error) {
 	defer c.Close()
 	name := fmt.Sprintf("projects/%s/secrets/%s/versions/%d", c.projectId, secretName, versionNumber)
 	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
@@ -50,7 +50,7 @@ func (c *GcpSecretsClient) GetSecretVersion(ctx context.Context, secretName stri
 	return string(res.Payload.Data), nil
 }
 
-func (c *GcpSecretsClient) GetLatestVersion(ctx context.Context, secretName string) (any, error) {
+func (c *GcpSecretsClient) GetLatestVersion(ctx context.Context, secretName string) (string, error) {
 	defer c.Close()
 	name := fmt.Sprintf("projects/%s/secrets/%s/versions/latest", c.projectId, secretName)
 	accessRequest := &secretmanagerpb.AccessSecretVersionRequest{
