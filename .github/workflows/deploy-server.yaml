@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-  pull_request:
-    branches:
-      - main
 jobs:
   build:
     environment: prod
@@ -51,7 +48,7 @@ jobs:
         run: |
           docker tag ghcr.io/jansdhillon/${{ vars.SERVICE_NAME }}:latest gcr.io/${{ vars.ARTIFACT_REPO }}
           docker push gcr.io/${{ vars.ARTIFACT_REPO }}
-      - name: Setup Terraform with specified version on the runner
+      - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
           terraform_version: 1.10.0
