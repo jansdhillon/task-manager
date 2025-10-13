@@ -11,7 +11,7 @@ import (
 	"github.com/jansdhillon/task-manager/server/internal/secrets"
 )
 
-func getDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
+func GetDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
 	dsn, err := sc.GetLatestVersion(ctx, config.POSTGRES_DSN_ENV)
 	dsn, err := sc.GetLatestVersion(ctx, config.POSTGRES_DSN_ENV)
 	if err != nil {
@@ -34,7 +34,7 @@ func Connect() (*pgx.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	dsn, err := getDsn(ctx, sc)
+	dsn, err := GetDsn(ctx, sc)
 	if err != nil {
 		return nil, err
 	}

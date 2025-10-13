@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
@@ -29,7 +28,7 @@ func (s *InMemoryTaskStore) GetTask(ctx context.Context, id uuid.UUID) (*Task, e
 			return s.Tasks[i], nil
 		}
 	}
-	return nil, errors.New("task not found")
+	return nil, fmt.Errorf("task not found")
 }
 
 // DeleteTask takes the ID of a task and deletes it from
