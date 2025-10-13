@@ -7,30 +7,30 @@ import (
 )
 
 type FakeGoogleSecretsClient struct {
-	Secrets map[string]map[int]any
+	Secrets map[string]map[int]string
 	Err     error
 }
 
-func (f *FakeGoogleSecretsClient) GetSecretVersion(ctx context.Context, name string, version int) (any, error) {
+func (f *FakeGoogleSecretsClient) GetSecretVersion(ctx context.Context, name string, version int) (string, error) {
 	if f.Err != nil {
-		return nil, f.Err
+		return "", f.Err
 	}
 	if versions, ok := f.Secrets[name]; ok {
 		if val, ok := versions[version]; ok {
 			return val, nil
 		}
-		return nil, fmt.Errorf("version %d not found for secret %q", version, name)
+		return "", fmt.Errorf("version %d not found for secret %q", version, name)
 	}
-	return nil, fmt.Errorf("secret %q not found", name)
+	return "", fmt.Errorf("secret %q not found", name)
 }
 
-func (f *FakeGoogleSecretsClient) GetLatestVersion(ctx context.Context, name string) (any, error) {
+func (f *FakeGoogleSecretsClient) GetLatestVersion(ctx context.Context, name string) (string, error) {
 	if f.Err != nil {
-		return nil, f.Err
+		return "", f.Err
 	}
 	versions, ok := f.Secrets[name]
 	if !ok || len(versions) == 0 {
-		return nil, fmt.Errorf("no versions found for secret %q", name)
+		return "", fmt.Errorf("no versions found for secret %q", name)
 	}
 	var latest int
 	for v := range versions {
@@ -51,13 +51,13 @@ func TestGetSecretVersion(t *testing.T) {
 		fakeClient    *FakeGoogleSecretsClient
 		secretName    string
 		version       int
-		expectedValue any
+		expectedValue string
 		expectError   bool
 	}{
 		{
 			desc: "should return specific secret version",
 			fakeClient: &FakeGoogleSecretsClient{
-				Secrets: map[string]map[int]any{"my-secret": {1: "foo", 2: "bar"}},
+				Secrets: map[string]map[int]string{"my-secret": {1: "foo", 2: "bar"}},
 			},
 			secretName:    "my-secret",
 			version:       2,
@@ -66,7 +66,7 @@ func TestGetSecretVersion(t *testing.T) {
 		{
 			desc: "should fail on unknown version",
 			fakeClient: &FakeGoogleSecretsClient{
-				Secrets: map[string]map[int]any{"my-secret": {1: "foo"}},
+				Secrets: map[string]map[int]string{"my-secret": {1: "foo"}},
 			},
 			secretName:  "my-secret",
 			version:     2,
@@ -75,7 +75,7 @@ func TestGetSecretVersion(t *testing.T) {
 		{
 			desc: "should fail on missing secret",
 			fakeClient: &FakeGoogleSecretsClient{
-				Secrets: map[string]map[int]any{},
+				Secrets: map[string]map[int]string{},
 			},
 			secretName:  "unknown",
 			version:     1,
@@ -101,13 +101,13 @@ func TestGetLatestVersion(t *testing.T) {
 		desc          string
 		fakeClient    *FakeGoogleSecretsClient
 		secretName    string
-		expectedValue any
+		expectedValue string
 		expectError   bool
 	}{
 		{
 			desc: "should return the latest secret version",
 			fakeClient: &FakeGoogleSecretsClient{
-				Secrets: map[string]map[int]any{"my-secret": {1: "foo", 2: "bar"}},
+				Secrets: map[string]map[int]string{"my-secret": {1: "foo", 2: "bar"}},
 			},
 			secretName:    "my-secret",
 			expectedValue: "bar",
@@ -115,7 +115,7 @@ func TestGetLatestVersion(t *testing.T) {
 		{
 			desc: "should fail on missing secret",
 			fakeClient: &FakeGoogleSecretsClient{
-				Secrets: map[string]map[int]any{},
+				Secrets: map[string]map[int]string{},
 			},
 			secretName:  "unknown",
 			expectError: true,

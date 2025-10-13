@@ -13,15 +13,10 @@ import (
 
 func GetDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
 	dsn, err := sc.GetLatestVersion(ctx, config.POSTGRES_DSN_ENV)
-	dsn, err := sc.GetLatestVersion(ctx, config.POSTGRES_DSN_ENV)
 	if err != nil {
 		return "", err
 	}
-	dsnStr, ok := dsn.(string)
-	if !ok {
-		return "", fmt.Errorf("error converting DSN to a string: %s", dsnStr)
-	}
-	return dsn.(string), nil
+	return dsn, nil
 }
 
 func Connect() (*pgx.Conn, error) {
