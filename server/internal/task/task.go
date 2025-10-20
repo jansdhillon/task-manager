@@ -17,10 +17,10 @@ const (
 )
 
 type TaskStore interface {
-	AddTask(context.Context, *Task) (*Task, error)
-	DeleteTask(context.Context, uuid.UUID) error
-	UpdateTask(ctx context.Context, id uuid.UUID, title string, description *string) (*Task, error)
-	GetTask(context.Context, uuid.UUID) (*Task, error)
+	AddTask(ctx context.Context, title string, description *string) (*Task, error)
+	DeleteTask(ctx context.Context, id uuid.UUID) error
+	UpdateTask(ctx context.Context, id uuid.UUID, title string, description *string, status Status) (*Task, error)
+	GetTask(ctx context.Context, id uuid.UUID) (*Task, error)
 }
 
 var statusName = map[Status]string{

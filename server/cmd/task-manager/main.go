@@ -18,22 +18,28 @@ import (
 )
 
 func main() {
-	gcpProjectId := os.Getenv("GCP_PROJECT_ID")
+	projectId := os.Getenv("GCP_PROJECT_ID")
 
-	if gcpProjectId == "" {
+	if projectId == "" {
 		log.Fatal("GCP project ID not found!")
 	}
 	ctx := context.Background()
-	conn, err := db.Connect(ctx)
+	sc, err := secrets.NewGcpSecretsClient(ctx, projectId)
+	if err != nil {
+		log.Fatalf("error creating secrets client: %v", err)
+	}
+	dsn, err := db.GetDsn(ctx, sc)
+	if err != nil {
+		log.Fatalf("error getting dsn: %v", err)
+	}
+	conn, err := db.Connect(ctx, dsn)
 	if err != nil {
 		log.Fatalf("failed to connect to db: %v", err)
 	}
 
 	defer conn.Close()
 
-	sc, err := secrets.NewGcpSecretsClient(ctx, gcpProjectId)
-
-	taskDB := db.NewTaskDB(conn, sc)
+	taskDB := db.NewTaskDB(conn)
 
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0%s", config.SERVICE_PORT))
 	if err != nil {

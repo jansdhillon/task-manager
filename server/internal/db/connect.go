@@ -3,21 +3,15 @@ package db
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"fmt"
-	"os"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
+	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jansdhillon/task-manager/server/internal/config"
 	"github.com/jansdhillon/task-manager/server/internal/secrets"
 )
 
-var (
-	newSecretsClient = func(ctx context.Context, projectID string) (secrets.SecretsClient, error) {
-		return secrets.NewGcpSecretsClient(ctx, projectID)
-	}
-	sqlOpenFunc = sql.Open
-)
+const defaultDriver = "pgx"
 
 func GetDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
 	dsn, err := sc.GetLatestVersion(ctx, config.POSTGRES_DSN_ENV)
@@ -27,20 +21,26 @@ func GetDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
 	return dsn, nil
 }
 
-func Connect(ctx context.Context) (*sql.DB, error) {
-	projectId := os.Getenv(config.GCP_PROJECT_ID_ENV)
-	if projectId == "" {
-		return nil, errors.New("GCP project ID not found")
+// Connect to the DSN with the default driver
+func Connect(ctx context.Context, dsn string) (*sql.DB, error) {
+	return connect(ctx, defaultDriver, dsn)
+}
+
+func connect(ctx context.Context, driver, dsn string) (*sql.DB, error) {
+	if driver == "" {
+		driver = defaultDriver
 	}
-	sc, err := newSecretsClient(ctx, projectId)
-	if err != nil {
-		return nil, err
+
+	if driver == defaultDriver {
+		if cfg, err := pgx.ParseConfig(dsn); err == nil {
+			cfg.StatementCacheCapacity = 0
+			cfg.DescriptionCacheCapacity = 0
+			cfg.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
+			dsn = stdlib.RegisterConnConfig(cfg)
+		}
 	}
-	dsn, err := GetDsn(ctx, sc)
-	if err != nil {
-		return nil, err
-	}
-	db, err := sqlOpenFunc("pgx", dsn)
+
+	db, err := sql.Open(driver, dsn)
 	if err != nil {
 		return nil, fmt.Errorf("unable to open database: %w", err)
 	}

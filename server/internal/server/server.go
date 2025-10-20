@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/google/uuid"
 	pb "github.com/jansdhillon/task-manager/proto"
@@ -23,18 +24,13 @@ func NewTaskServer(store task.TaskStore) *TaskServer {
 }
 
 func (s *TaskServer) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.CreateTaskResponse, error) {
-	var description *string
-	if req.Description != nil {
-		description = req.Description
-	}
-
-	newTask := task.NewTask(req.Title, description)
-	createdTask, err := s.store.AddTask(ctx, newTask)
+	createdTask, err := s.store.AddTask(ctx, req.Title, req.Description)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
 
 	pbTask := taskToProto(createdTask)
+	log.Printf("task created: %v", pbTask)
 	return &pb.CreateTaskResponse{
 		Task: pbTask,
 	}, nil
@@ -68,7 +64,7 @@ func (s *TaskServer) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest) 
 		description = req.Description
 	}
 
-	updatedTask, err := s.store.UpdateTask(ctx, id, req.Title, description)
+	updatedTask, err := s.store.UpdateTask(ctx, id, req.Title, description, task.InProgress)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update task: %w", err)
 	}

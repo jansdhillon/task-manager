@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 )
@@ -12,17 +11,22 @@ import (
 func TestAddTask(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]*Task, 0)}
 
-	task := &Task{ID: uuid.New(), Title: "World", Description: nil, CreatedAt: time.Now(), LastUpdatedAt: time.Now(), Deleted: false}
-	ctx := context.Background()
+	title := "world"
+	var description *string
 
-	addedTask, err := store.AddTask(ctx, task)
+	addedTask, err := store.AddTask(t.Context(), title, description)
 	if err != nil {
 		t.Errorf("Failed to add task: %v", err)
 	}
 
-	if addedTask.ID != task.ID {
-		t.Errorf("Result was wrong, wanted: %s, got: %v.", task.String(), addedTask.String())
+	if addedTask.Title != title {
+		t.Errorf("got unexpected title: %s, want: %s", addedTask.Title, title)
 	}
+
+	if addedTask.Description != nil {
+		t.Errorf("got unexpected title: %s, want: %v", *addedTask.Description, nil)
+	}
+
 }
 
 // TestGetTask calls task.GetTask with an ID,
@@ -30,17 +34,14 @@ func TestAddTask(t *testing.T) {
 func TestGetTask(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]*Task, 0)}
 	desc := "world"
-	task := NewTask("Hello World", &desc)
-	fmt.Println(task.String())
-	ctx := context.Background()
-	id := task.ID
+	title := "Hello World"
 
-	_, err := store.AddTask(ctx, task)
+	task, err := store.AddTask(t.Context(), title, &desc)
 	if err != nil {
 		t.Errorf("Failed to add task: %v", err)
 	}
 
-	retrievedTask, err := store.GetTask(ctx, id)
+	retrievedTask, err := store.GetTask(t.Context(), task.ID)
 
 	if err != nil {
 		t.Errorf("Failed to get task: %v", err)
@@ -56,17 +57,13 @@ func TestGetTask(t *testing.T) {
 // is null.
 func TestGetTaskNillable(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]*Task, 0)}
-	task := NewTask("Hello World", nil)
-	fmt.Println(task.String())
-
-	id := task.ID
 	ctx := context.Background()
-	_, err := store.AddTask(ctx, task)
+	task, err := store.AddTask(ctx, "Hello World", nil)
 	if err != nil {
 		t.Errorf("Failed to add task: %v", err)
 	}
 
-	retrievedTask, err := store.GetTask(ctx, id)
+	retrievedTask, err := store.GetTask(ctx, task.ID)
 
 	if err != nil {
 		t.Errorf("Failed to get task: %v", err)
@@ -84,7 +81,7 @@ func TestDeleteTask(t *testing.T) {
 	var taskIDs []uuid.UUID
 	ctx := context.Background()
 	for i := range 10 {
-		task, err := store.AddTask(ctx, NewTask(fmt.Sprintf("task %d", i), nil))
+		task, err := store.AddTask(ctx, fmt.Sprintf("task %d", i), nil)
 		if err != nil {
 			t.Error(err)
 		}
@@ -116,17 +113,13 @@ func TestDeleteTask(t *testing.T) {
 func TestDeleteTaskNotFoundRaises(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]*Task, 0)}
 
-	var taskIDs []uuid.UUID
-	ctx := context.Background()
-
 	for i := range 10 {
-		task, err := store.AddTask(ctx, NewTask(fmt.Sprintf("task %d", i), nil))
+		task, err := store.AddTask(t.Context(), fmt.Sprintf("task %d", i), nil)
 		if err != nil {
 			t.Error(err)
 		}
-		taskIDs = append(taskIDs, task.ID)
 
-		_, err = store.GetTask(ctx, task.ID)
+		_, err = store.GetTask(t.Context(), task.ID)
 		if err != nil {
 			t.Error(err)
 		}
@@ -134,7 +127,7 @@ func TestDeleteTaskNotFoundRaises(t *testing.T) {
 
 	invalidID := uuid.New()
 	fmt.Printf("Attempting to delete task with ID %s\n", invalidID)
-	err := store.DeleteTask(ctx, invalidID)
+	err := store.DeleteTask(t.Context(), invalidID)
 
 	fmt.Printf("Received err: %v", err)
 
@@ -146,16 +139,16 @@ func TestDeleteTaskNotFoundRaises(t *testing.T) {
 
 func TestUpdateTask(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]*Task, 0)}
-	task := NewTask("task", nil)
-	ctx := context.Background()
-	_, err := store.AddTask(ctx, task)
+	title := "task"
+	var desc *string
+	task, err := store.AddTask(t.Context(), title, desc)
 	if err != nil {
 		t.Errorf("Failed to add task: %v", err)
 	}
 
 	newDesc := "Hello"
 
-	updatedTask, err := store.UpdateTask(ctx, task.ID, "New", &newDesc)
+	updatedTask, err := store.UpdateTask(t.Context(), task.ID, "New", &newDesc, InProgress)
 
 	if err != nil {
 		t.Error(err)
@@ -172,14 +165,12 @@ func TestUpdateTask(t *testing.T) {
 func TestUpdateTaskNotFoundRaises(t *testing.T) {
 	store := &InMemoryTaskStore{Name: "Store", Tasks: make([]*Task, 0)}
 	ctx := context.Background()
-	var taskIDs []uuid.UUID
 
 	for i := range 10 {
-		task, err := store.AddTask(ctx, NewTask(fmt.Sprintf("task %d", i), nil))
+		task, err := store.AddTask(t.Context(), fmt.Sprintf("task %d", i), nil)
 		if err != nil {
 			t.Error(err)
 		}
-		taskIDs = append(taskIDs, task.ID)
 
 		_, err = store.GetTask(ctx, task.ID)
 		if err != nil {
@@ -189,7 +180,7 @@ func TestUpdateTaskNotFoundRaises(t *testing.T) {
 
 	invalidID := uuid.New()
 	fmt.Printf("Attempting to update task with ID %s\n", invalidID)
-	_, err := store.UpdateTask(ctx, invalidID, "h", nil)
+	_, err := store.UpdateTask(ctx, invalidID, "h", nil, Completed)
 
 	fmt.Printf("Received err: %v\n", err)
 

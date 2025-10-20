@@ -12,7 +12,8 @@ type InMemoryTaskStore struct {
 	Tasks []*Task
 }
 
-func (s *InMemoryTaskStore) AddTask(ctx context.Context, t *Task) (*Task, error) {
+func (s *InMemoryTaskStore) AddTask(ctx context.Context, title string, description *string) (*Task, error) {
+	t := NewTask(title, description)
 	s.Tasks = append(s.Tasks, t)
 	return t, nil
 }
@@ -56,7 +57,7 @@ func (s *InMemoryTaskStore) DeleteTask(ctx context.Context, id uuid.UUID) error 
 }
 
 // UpdateTask updates the content of a task
-func (s *InMemoryTaskStore) UpdateTask(ctx context.Context, id uuid.UUID, title string, description *string) (*Task, error) {
+func (s *InMemoryTaskStore) UpdateTask(ctx context.Context, id uuid.UUID, title string, description *string, status Status) (*Task, error) {
 	task, err := s.GetTask(ctx, id)
 
 	if err != nil {
