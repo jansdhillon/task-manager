@@ -10,6 +10,7 @@ import (
 
 const (
 	serverAddressFlag = "address"
+	insecureFlag      = "insecure"
 )
 
 func main() {
@@ -26,6 +27,12 @@ func main() {
 				Usage:    "Server address (can also be set via TASK_SERVER_ADDRESS env var)",
 				Required: true,
 				Sources:  cli.EnvVars("TASK_SERVER_ADDRESS"),
+			},
+			&cli.BoolFlag{
+				Name:    insecureFlag,
+				Aliases: []string{"plaintext"},
+				Usage:   "Use plaintext connection (disable TLS). Can also be set via TASK_CLIENT_INSECURE env var.",
+				Sources: cli.EnvVars("TASK_CLIENT_INSECURE"),
 			},
 		},
 	}

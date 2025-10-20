@@ -27,12 +27,11 @@ func GetDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
 	return dsn, nil
 }
 
-func Connect() (*sql.DB, error) {
+func Connect(ctx context.Context) (*sql.DB, error) {
 	projectId := os.Getenv(config.GCP_PROJECT_ID_ENV)
 	if projectId == "" {
 		return nil, errors.New("GCP project ID not found")
 	}
-	ctx := context.Background()
 	sc, err := newSecretsClient(ctx, projectId)
 	if err != nil {
 		return nil, err

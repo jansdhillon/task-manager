@@ -19,13 +19,14 @@ var createCmd = &cli.Command{
 
 		address := cmd.String(serverAddressFlag)
 		title := cmd.Args().Get(0)
+		useInsecure := cmd.Bool(insecureFlag)
 		description := cmd.Args().Get(1)
 		var desc *string
 		if description != "" {
 			desc = &description
 		}
 
-		result, err := client.ExecuteWithClient(address, func(c *client.TaskClient) (any, error) {
+		result, err := client.ExecuteWithClient(address, useInsecure, func(c *client.TaskClient) (any, error) {
 			return c.CreateTask(ctx, title, desc)
 		})
 

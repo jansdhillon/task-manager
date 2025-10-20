@@ -18,6 +18,13 @@ type TaskDB struct {
 	secretsClient secrets.SecretsClient
 }
 
+func NewTaskDB(conn *sql.DB, sc secrets.SecretsClient) *TaskDB {
+	return &TaskDB{
+		conn:          conn,
+		secretsClient: sc,
+	}
+}
+
 func TaskFromDBTask(ctx context.Context, dbTask *model.Task) (*task.Task, error) {
 	if dbTask == nil {
 		return nil, errors.New("db task is nil")

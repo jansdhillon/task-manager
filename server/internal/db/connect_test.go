@@ -134,7 +134,7 @@ func TestConnect(t *testing.T) {
 		_ = mockDB.Close()
 	})
 
-	db, err := Connect()
+	db, err := Connect(t.Context())
 	if err != nil {
 		t.Fatalf("Connect() error = %v", err)
 	}

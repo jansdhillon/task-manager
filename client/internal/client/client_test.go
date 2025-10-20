@@ -98,7 +98,7 @@ func TestExecuteWithClient_CreateTask(t *testing.T) {
 		tasks: make(map[string]*pb.Task),
 	}
 
-	NewTaskClient = func(address string) (*TaskClient, error) {
+	NewTaskClient = func(address string, useInsecure bool) (*TaskClient, error) {
 		return &TaskClient{
 			client: mockClient,
 		}, nil
@@ -107,7 +107,7 @@ func TestExecuteWithClient_CreateTask(t *testing.T) {
 	title := "Test Task"
 	description := "Test Description"
 
-	result, err := ExecuteWithClient("localhost:8080", func(c *TaskClient) (any, error) {
+	result, err := ExecuteWithClient("localhost:8080", true, func(c *TaskClient) (any, error) {
 		return c.CreateTask(context.Background(), title, &description)
 	})
 
@@ -132,11 +132,11 @@ func TestExecuteWithClient_ConnectionError(t *testing.T) {
 	originalNewTaskClient := NewTaskClient
 	defer func() { NewTaskClient = originalNewTaskClient }()
 
-	NewTaskClient = func(address string) (*TaskClient, error) {
+	NewTaskClient = func(address string, useInsecure bool) (*TaskClient, error) {
 		return nil, fmt.Errorf("connection failed")
 	}
 
-	result, err := ExecuteWithClient("localhost:8080", func(c *TaskClient) (any, error) {
+	result, err := ExecuteWithClient("localhost:8080", true, func(c *TaskClient) (any, error) {
 		return c.CreateTask(context.Background(), "title", nil)
 	})
 
@@ -159,13 +159,13 @@ func TestExecuteWithClient_FunctionError(t *testing.T) {
 		tasks: make(map[string]*pb.Task),
 	}
 
-	NewTaskClient = func(address string) (*TaskClient, error) {
+	NewTaskClient = func(address string, useInsecure bool) (*TaskClient, error) {
 		return &TaskClient{
 			client: mockClient,
 		}, nil
 	}
 
-	result, err := ExecuteWithClient("localhost:8080", func(c *TaskClient) (any, error) {
+	result, err := ExecuteWithClient("localhost:8080", true, func(c *TaskClient) (any, error) {
 		return nil, fmt.Errorf("function execution failed")
 	})
 

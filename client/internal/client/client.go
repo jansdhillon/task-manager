@@ -8,6 +8,7 @@ import (
 	pb "github.com/jansdhillon/task-manager/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type TaskClient struct {
@@ -17,8 +18,15 @@ type TaskClient struct {
 
 var NewTaskClient = newTaskClient
 
-func newTaskClient(address string) (*TaskClient, error) {
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(credentials.NewTLS(nil)))
+func newTaskClient(address string, useInsecure bool) (*TaskClient, error) {
+	var creds credentials.TransportCredentials
+	if useInsecure {
+		creds = insecure.NewCredentials()
+	} else {
+		creds = credentials.NewTLS(nil)
+	}
+
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(creds))
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
 	}
@@ -31,6 +39,9 @@ func newTaskClient(address string) (*TaskClient, error) {
 }
 
 func (c *TaskClient) Close() error {
+	if c.conn == nil {
+		return nil
+	}
 	return c.conn.Close()
 }
 
@@ -93,12 +104,18 @@ func (c *TaskClient) DeleteTask(ctx context.Context, id string) (bool, error) {
 	return resp.Success, nil
 }
 
-func ExecuteWithClient(address string, fn func(*TaskClient) (any, error)) (any, error) {
-	c, err := NewTaskClient(address)
+func ExecuteWithClient(address string, useInsecure bool, fn func(*TaskClient) (any, error)) (any, error) {
+	c, err := NewTaskClient(address, useInsecure)
 	if err != nil {
 		log.Printf("error creating client: %v", err)
 		return nil, err
 	}
+
+	defer func() {
+		if cerr := c.Close(); cerr != nil {
+			log.Printf("error closing client connection: %v", cerr)
+		}
+	}()
 
 	res, err := fn(c)
 
