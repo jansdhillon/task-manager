@@ -2,19 +2,19 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 
-	. "github.com/go-jet/jet/v2/postgres"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
-	model "github.com/jansdhillon/task-manager/server/.gen/postgres/public/model"
+	"github.com/jansdhillon/task-manager/server/.gen/postgres/public/model"
+	. "github.com/jansdhillon/task-manager/server/.gen/postgres/public/table"
 	"github.com/jansdhillon/task-manager/server/internal/secrets"
 	"github.com/jansdhillon/task-manager/server/internal/task"
 )
 
 type TaskDB struct {
-	conn          pgx.Conn
+	conn          *sql.DB
 	secretsClient secrets.SecretsClient
 }
 
@@ -53,9 +53,27 @@ func statusFromModel(status model.Status) (task.Status, error) {
 }
 
 func (db *TaskDB) AddTask(ctx context.Context, t *task.Task) (*task.Task, error) {
-	stmt := SELECT(
-		model.Task.AllCol,
-	)
+	if t == nil {
+		return nil, errors.New("task is nil")
+	}
+
+	insertInput := model.Task{
+		Title:       t.Title,
+		Description: t.Description,
+	}
+
+	insertStmt := Task.
+		INSERT(Task.Title, Task.Description).
+		MODEL(insertInput).
+		RETURNING(Task.AllColumns)
+
+	var created model.Task
+
+	if err := insertStmt.QueryContext(ctx, db.conn, &created); err != nil {
+		return nil, err
+	}
+
+	return TaskFromDBTask(ctx, &created)
 }
 
 func (db *TaskDB) UpdateTask(ctx context.Context, id uuid.UUID, title string, description *string) (*task.Task, error) {

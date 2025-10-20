@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 	"net"
 
@@ -27,7 +26,7 @@ func main() {
 		log.Fatalf("failed to connect to db: %v", err)
 	}
 
-	defer conn.Close(context.Background())
+	defer conn.Close()
 
 	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0%s", config.SERVICE_PORT))
 	if err != nil {

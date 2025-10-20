@@ -2,13 +2,21 @@ package db
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"os"
 
-	"github.com/jackc/pgx/v5"
+	_ "github.com/jackc/pgx/v5/stdlib"
 	"github.com/jansdhillon/task-manager/server/internal/config"
 	"github.com/jansdhillon/task-manager/server/internal/secrets"
+)
+
+var (
+	newSecretsClient = func(ctx context.Context, projectID string) (secrets.SecretsClient, error) {
+		return secrets.NewGcpSecretsClient(ctx, projectID)
+	}
+	sqlOpenFunc = sql.Open
 )
 
 func GetDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
@@ -19,13 +27,13 @@ func GetDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
 	return dsn, nil
 }
 
-func Connect() (*pgx.Conn, error) {
+func Connect() (*sql.DB, error) {
 	projectId := os.Getenv(config.GCP_PROJECT_ID_ENV)
 	if projectId == "" {
 		return nil, errors.New("GCP project ID not found")
 	}
 	ctx := context.Background()
-	sc, err := secrets.NewGcpSecretsClient(ctx, projectId)
+	sc, err := newSecretsClient(ctx, projectId)
 	if err != nil {
 		return nil, err
 	}
@@ -33,9 +41,15 @@ func Connect() (*pgx.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	conn, err := pgx.Connect(context.Background(), dsn)
+	db, err := sqlOpenFunc("pgx", dsn)
 	if err != nil {
-		return nil, fmt.Errorf("unable to connect to database: %w", err)
+		return nil, fmt.Errorf("unable to open database: %w", err)
 	}
-	return conn, nil
+
+	if err := db.PingContext(ctx); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("unable to ping database: %w", err)
+	}
+
+	return db, nil
 }
