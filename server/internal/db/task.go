@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/go-jet/jet/v2/postgres"
 	"github.com/google/uuid"
 	"github.com/jansdhillon/task-manager/server/.gen/postgres/public/model"
 	. "github.com/jansdhillon/task-manager/server/.gen/postgres/public/table"
@@ -20,6 +21,12 @@ func NewTaskDB(conn *sql.DB) *TaskDB {
 	return &TaskDB{
 		conn: conn,
 	}
+}
+
+func (db *TaskDB) Close() error {
+	db.conn.Close()
+
+	return nil
 }
 
 func TaskFromDBTask(ctx context.Context, dbTask *model.Task) (*task.Task, error) {
@@ -104,7 +111,7 @@ func (db *TaskDB) UpdateTask(ctx context.Context, id uuid.UUID, title string, de
 		Status:      modelStatusFromTaskStatus(status),
 	}
 
-	updateStmt := Task.UPDATE(Task.MutableColumns).MODEL(in).RETURNING(Task.AllColumns)
+	updateStmt := Task.UPDATE(Task.MutableColumns).MODEL(in).WHERE(Task.ID.EQ(postgres.UUID(id))).RETURNING(Task.AllColumns)
 
 	var updatedTask model.Task
 
@@ -117,7 +124,7 @@ func (db *TaskDB) UpdateTask(ctx context.Context, id uuid.UUID, title string, de
 
 // Retrieve a task from the DB
 func (db *TaskDB) GetTask(ctx context.Context, id uuid.UUID) (*task.Task, error) {
-	stmt := Task.SELECT(Task.AllColumns)
+	stmt := Task.SELECT(Task.AllColumns).WHERE(Task.ID.EQ(postgres.UUID(id)))
 
 	var found model.Task
 	if err := stmt.QueryContext(ctx, db.conn, &found); err != nil {
@@ -127,7 +134,14 @@ func (db *TaskDB) GetTask(ctx context.Context, id uuid.UUID) (*task.Task, error)
 	return TaskFromDBTask(ctx, &found)
 }
 
-func (db *TaskDB) DeleteTask(ctx context.Context, uuid uuid.UUID) error {
+func (db *TaskDB) DeleteTask(ctx context.Context, id uuid.UUID) error {
+	stmt := Task.DELETE().WHERE(Task.ID.EQ(postgres.UUID(id)))
+
+	_, err := stmt.ExecContext(ctx, db.conn)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

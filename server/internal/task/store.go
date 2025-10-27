@@ -12,6 +12,13 @@ type InMemoryTaskStore struct {
 	Tasks []*Task
 }
 
+func NewInMemoryTaskStore(name string, tasks []*Task) *InMemoryTaskStore {
+	return &InMemoryTaskStore{
+		Name:  name,
+		Tasks: tasks,
+	}
+}
+
 func (s *InMemoryTaskStore) AddTask(ctx context.Context, title string, description *string) (*Task, error) {
 	t := NewTask(title, description)
 	s.Tasks = append(s.Tasks, t)
