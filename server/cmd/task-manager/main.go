@@ -1,45 +1,44 @@
 package main
 
 import (
-	"context"
-	"log"
-	"net"
-
 	"fmt"
+	"net/http"
+	"os"
 
-	"github.com/jansdhillon/task-manager/server/internal/config"
+	"connectrpc.com/connect"
+	"connectrpc.com/validate"
+	taskv1connect "github.com/jansdhillon/task-manager/proto/gen/task/v1/taskv1connect"
 	"github.com/jansdhillon/task-manager/server/internal/db"
 	"github.com/jansdhillon/task-manager/server/internal/server"
-	"github.com/jansdhillon/task-manager/server/internal/task"
 	_ "github.com/joho/godotenv/autoload"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/reflection"
 )
 
 func main() {
-	store := &task.InMemoryTaskStore{
-		Name:  "TaskManager",
-		Tasks: make([]task.Task, 0, task.MAX_TASKS),
+	taskDB := db.NewTaskDB()
+	svc := server.NewTaskServer(taskDB)
+	mux := http.NewServeMux()
+	path, handler := taskv1connect.NewTaskServiceHandler(
+		svc,
+		connect.WithInterceptors(validate.NewInterceptor()),
+	)
+	mux.Handle(path, handler)
+	p := new(http.Protocols)
+	p.SetHTTP1(true)
+	// Use h2c so we can serve HTTP/2 without TLS.
+	p.SetUnencryptedHTTP2(true)
+	port := os.Getenv("TASK_MANAGER_PORT")
+	if port == "" {
+		port = "8080"
 	}
-
-	conn, err := db.Connect()
-	if err != nil {
-		log.Fatalf("failed to connect to db: %v", err)
+	address := os.Getenv("TASK_MANAGER_ADDRESS")
+	if address == "" {
+		address = "0.0.0.0"
 	}
-
-	defer conn.Close(context.Background())
-
-	lis, err := net.Listen("tcp", fmt.Sprintf("0.0.0.0%s", config.SERVICE_PORT))
-	if err != nil {
-		log.Fatalf("failed to listen: %v", err)
+	s := http.Server{
+		Addr:      fmt.Sprintf("%s:%s", address, port),
+		Handler:   mux,
+		Protocols: p,
 	}
+	s.ListenAndServe()
 
-	s := grpc.NewServer()
-	server.RegisterTaskService(s, store)
-	reflection.Register(s)
-
-	log.Printf("gRPC server listening on port 8080")
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("failed to serve: %v", err)
-	}
 }

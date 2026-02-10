@@ -1,15 +1,14 @@
 syntax = "proto3";
 
-package task;
+package task.v1;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/jansdhillon/task-manager/proto";
-
 enum Status {
-  NotStarted = 0;
-	InProgress = 1;
-	Completed = 2;
+  STATUS_UNSPECIFIED = 0;
+  STATUS_NOT_STARTED = 1;
+	STATUS_IN_PROGRESS = 2;
+	STATUS_COMPLETED = 3;
 }
 
 message Task {

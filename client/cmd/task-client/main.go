@@ -23,9 +23,9 @@ func main() {
 			&cli.StringFlag{
 				Name:     serverAddressFlag,
 				Aliases:  []string{"a"},
-				Usage:    "Server address (can also be set via TASK_SERVER_ADDRESS env var)",
+				Usage:    "Server address (can also be set via TASK_MANAGER_ADDRESS env var)",
 				Required: true,
-				Sources:  cli.EnvVars("TASK_SERVER_ADDRESS"),
+				Sources:  cli.EnvVars("TASK_MANAGER_ADDRESS"),
 			},
 		},
 	}

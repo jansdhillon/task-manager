@@ -5,114 +5,77 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	pb "github.com/jansdhillon/task-manager/proto"
-	"github.com/jansdhillon/task-manager/server/internal/task"
-	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
+	taskv1 "github.com/jansdhillon/task-manager/proto/gen/task/v1"
+	"github.com/jansdhillon/task-manager/server/internal/db"
 )
 
 type TaskServer struct {
-	pb.UnimplementedTaskServiceServer
-	store task.TaskStore
+	db *db.TaskDB
 }
 
-func NewTaskServer(store task.TaskStore) *TaskServer {
+func NewTaskServer(database *db.TaskDB) *TaskServer {
 	return &TaskServer{
-		store: store,
+		db: database,
 	}
 }
 
-func (s *TaskServer) CreateTask(ctx context.Context, req *pb.CreateTaskRequest) (*pb.CreateTaskResponse, error) {
-	var description *string
-	if req.Description != nil {
-		description = req.Description
-	}
-
-	newTask := task.NewTask(req.Title, description)
-	createdTask, err := s.store.AddTask(newTask)
+func (s *TaskServer) CreateTask(ctx context.Context, req *taskv1.CreateTaskRequest) (*taskv1.CreateTaskResponse, error) {
+	task, err := s.db.CreateTask(ctx, req.Title, req.Description)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create task: %w", err)
 	}
 
-	pbTask := taskToProto(&createdTask)
-	return &pb.CreateTaskResponse{
-		Task: pbTask,
+	return &taskv1.CreateTaskResponse{
+		Task: task,
 	}, nil
 }
 
-func (s *TaskServer) GetTask(ctx context.Context, req *pb.GetTaskRequest) (*pb.GetTaskResponse, error) {
+func (s *TaskServer) GetTask(ctx context.Context, req *taskv1.GetTaskRequest) (*taskv1.GetTaskResponse, error) {
 	id, err := uuid.Parse(req.Id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid task ID: %w", err)
 	}
 
-	task, err := s.store.GetTask(id)
+	task, err := s.db.GetTask(ctx, id)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get task: %w", err)
 	}
 
-	pbTask := taskToProto(task)
-	return &pb.GetTaskResponse{
-		Task: pbTask,
+	return &taskv1.GetTaskResponse{
+		Task: task,
 	}, nil
 }
 
-func (s *TaskServer) UpdateTask(ctx context.Context, req *pb.UpdateTaskRequest) (*pb.UpdateTaskResponse, error) {
+func (s *TaskServer) UpdateTask(ctx context.Context, req *taskv1.UpdateTaskRequest) (*taskv1.UpdateTaskResponse, error) {
 	id, err := uuid.Parse(req.Id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid task ID: %w", err)
 	}
 
-	var description *string
-	if req.Description != nil {
-		description = req.Description
-	}
-
-	updatedTask, err := s.store.UpdateTask(id, req.Title, description)
+	task, err := s.db.UpdateTask(ctx, id, req.Title, req.Description, req.Status)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update task: %w", err)
 	}
 
-	pbTask := taskToProto(updatedTask)
-	return &pb.UpdateTaskResponse{
-		Task: pbTask,
+	return &taskv1.UpdateTaskResponse{
+		Task: task,
 	}, nil
 }
 
-func (s *TaskServer) DeleteTask(ctx context.Context, req *pb.DeleteTaskRequest) (*pb.DeleteTaskResponse, error) {
+func (s *TaskServer) DeleteTask(ctx context.Context, req *taskv1.DeleteTaskRequest) (*taskv1.DeleteTaskResponse, error) {
 	id, err := uuid.Parse(req.Id)
 	if err != nil {
 		return nil, fmt.Errorf("invalid task ID: %w", err)
 	}
 
-	err = s.store.DeleteTask(id)
+	err = s.db.DeleteTask(ctx, id)
 	if err != nil {
-		return &pb.DeleteTaskResponse{
+		return &taskv1.DeleteTaskResponse{
 			Success: false,
 		}, fmt.Errorf("failed to delete task: %w", err)
 	}
 
-	return &pb.DeleteTaskResponse{
+	return &taskv1.DeleteTaskResponse{
 		Success: true,
 	}, nil
-}
-
-func taskToProto(t *task.Task) *pb.Task {
-	pbTask := &pb.Task{
-		Id:            t.ID.String(),
-		Title:         t.Title,
-		CreatedAt:     timestamppb.New(t.CreatedAt),
-		LastUpdatedAt: timestamppb.New(t.LastUpdatedAt),
-		Deleted:       t.Deleted,
-	}
-
-	if t.Description != nil {
-		pbTask.Description = t.Description
-	}
-
-	return pbTask
-}
-
-func RegisterTaskService(s *grpc.Server, store task.TaskStore) {
-	pb.RegisterTaskServiceServer(s, NewTaskServer(store))
 }

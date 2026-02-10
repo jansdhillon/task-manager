@@ -2,40 +2,98 @@ package db
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 
 	"github.com/jackc/pgx/v5"
-	"github.com/jansdhillon/task-manager/server/internal/config"
-	"github.com/jansdhillon/task-manager/server/internal/secrets"
 )
 
-func getDsn(ctx context.Context, sc secrets.SecretsClient) (string, error) {
-	dsn, err := sc.GetLatestVersion(ctx, config.POSTGRES_DSN_ENV)
-	if err != nil {
-		return "", err
-	}
-	return dsn, nil
+type DSN struct {
+	Database string
+	Username string
+	Password string
+	Host     string
+	Port     string
+	Schema   string
 }
 
-func Connect() (*pgx.Conn, error) {
-	projectId := os.Getenv(config.GCP_PROJECT_ID_ENV)
-	if projectId == "" {
-		return nil, errors.New("GCP project ID not found")
+type DSNOpt func(*DSN)
+
+func NewDSN(opts ...DSNOpt) *DSN {
+	dsn := &DSN{
+		Host:     "localhost",
+		Port:     "5432",
+		Database: "postgres",
+		Username: "postgres",
+		Password: "password",
+		Schema:   "public",
 	}
-	ctx := context.Background()
-	sc, err := secrets.NewGcpSecretsClient(ctx, projectId)
-	if err != nil {
-		return nil, err
+	for _, o := range opts {
+		o(dsn)
 	}
-	dsn, err := getDsn(ctx, sc)
-	if err != nil {
-		return nil, err
+
+	return dsn
+}
+
+func WithHost(host string) DSNOpt {
+	return func(d *DSN) {
+		if host != "" {
+			d.Host = host
+		}
 	}
-	conn, err := pgx.Connect(context.Background(), dsn)
+}
+
+func WithDatabase(database string) DSNOpt {
+	return func(d *DSN) {
+		if database != "" {
+			d.Database = database
+		}
+	}
+}
+
+func WithUsername(username string) DSNOpt {
+	return func(d *DSN) {
+		if username != "" {
+			d.Username = username
+		}
+	}
+}
+
+func WithPassword(password string) DSNOpt {
+	return func(d *DSN) {
+		if password != "" {
+			d.Password = password
+		}
+	}
+}
+
+func WithPort(port string) DSNOpt {
+	return func(d *DSN) {
+		if port != "" {
+			d.Port = port
+		}
+	}
+}
+
+func (d *DSN) String() string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s", d.Username, d.Password, d.Host, d.Port, d.Database)
+}
+
+func Connect(ctx context.Context, opts ...DSNOpt) (*pgx.Conn, error) {
+	defaultOpts := []DSNOpt{
+		WithHost(os.Getenv("TASK_MANAGER_DB_HOST")),
+		WithPort(os.Getenv("TASK_MANAGER_DB_PORT")),
+		WithDatabase(os.Getenv("TASK_MANAGER_DB_NAME")),
+		WithUsername(os.Getenv("TASK_MANAGER_DB_USER")),
+		WithPassword(os.Getenv("TASK_MANAGER_DB_PASSWORD")),
+	}
+	allOpts := append(defaultOpts, opts...)
+
+	dsn := NewDSN(allOpts...)
+	conn, err := pgx.Connect(ctx, dsn.String())
 	if err != nil {
 		return nil, fmt.Errorf("unable to connect to database: %w", err)
 	}
+	defer conn.Close(ctx)
 	return conn, nil
 }

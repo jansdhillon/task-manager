@@ -3,39 +3,31 @@ package client
 import (
 	"context"
 	"fmt"
-	"log"
+	"net/http"
 
-	pb "github.com/jansdhillon/task-manager/proto"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
+	taskv1 "github.com/jansdhillon/task-manager/proto/gen/task/v1"
+	"github.com/jansdhillon/task-manager/proto/gen/task/v1/taskv1connect"
 )
 
 type TaskClient struct {
-	client pb.TaskServiceClient
-	conn   *grpc.ClientConn
+	client taskv1connect.TaskServiceClient
 }
 
 var NewTaskClient = newTaskClient
 
 func newTaskClient(address string) (*TaskClient, error) {
-	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(credentials.NewTLS(nil)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to connect to gRPC server: %w", err)
-	}
+	client := taskv1connect.NewTaskServiceClient(
+		http.DefaultClient,
+		address,
+	)
 
-	client := pb.NewTaskServiceClient(conn)
 	return &TaskClient{
 		client: client,
-		conn:   conn,
 	}, nil
 }
 
-func (c *TaskClient) Close() error {
-	return c.conn.Close()
-}
-
-func (c *TaskClient) CreateTask(ctx context.Context, title string, description *string) (*pb.Task, error) {
-	req := &pb.CreateTaskRequest{
+func (c *TaskClient) CreateTask(ctx context.Context, title string, description *string) (*taskv1.Task, error) {
+	req := &taskv1.CreateTaskRequest{
 		Title: title,
 	}
 	if description != nil {
@@ -50,8 +42,8 @@ func (c *TaskClient) CreateTask(ctx context.Context, title string, description *
 	return resp.Task, nil
 }
 
-func (c *TaskClient) GetTask(ctx context.Context, id string) (*pb.Task, error) {
-	req := &pb.GetTaskRequest{
+func (c *TaskClient) GetTask(ctx context.Context, id string) (*taskv1.Task, error) {
+	req := &taskv1.GetTaskRequest{
 		Id: id,
 	}
 
@@ -63,13 +55,16 @@ func (c *TaskClient) GetTask(ctx context.Context, id string) (*pb.Task, error) {
 	return resp.Task, nil
 }
 
-func (c *TaskClient) UpdateTask(ctx context.Context, id, title string, description *string) (*pb.Task, error) {
-	req := &pb.UpdateTaskRequest{
+func (c *TaskClient) UpdateTask(ctx context.Context, id, title string, description *string, status *taskv1.Status) (*taskv1.Task, error) {
+	req := &taskv1.UpdateTaskRequest{
 		Id:    id,
 		Title: title,
 	}
 	if description != nil {
 		req.Description = description
+	}
+	if status != nil {
+		req.Status = status
 	}
 
 	resp, err := c.client.UpdateTask(ctx, req)
@@ -81,7 +76,7 @@ func (c *TaskClient) UpdateTask(ctx context.Context, id, title string, descripti
 }
 
 func (c *TaskClient) DeleteTask(ctx context.Context, id string) (bool, error) {
-	req := &pb.DeleteTaskRequest{
+	req := &taskv1.DeleteTaskRequest{
 		Id: id,
 	}
 
@@ -91,16 +86,4 @@ func (c *TaskClient) DeleteTask(ctx context.Context, id string) (bool, error) {
 	}
 
 	return resp.Success, nil
-}
-
-func ExecuteWithClient(address string, fn func(*TaskClient) (any, error)) (any, error) {
-	c, err := NewTaskClient(address)
-	if err != nil {
-		log.Printf("error creating client: %v", err)
-		return nil, err
-	}
-
-	res, err := fn(c)
-
-	return res, err
 }

@@ -25,15 +25,18 @@ var createCmd = &cli.Command{
 			desc = &description
 		}
 
-		result, err := client.ExecuteWithClient(address, func(c *client.TaskClient) (any, error) {
-			return c.CreateTask(ctx, title, desc)
-		})
+		c, err := client.NewTaskClient(address)
+		if err != nil {
+			errMsg := fmt.Sprintf("Error creating client: %v", err)
+			return cli.Exit(errMsg, 1)
+		}
 
+		task, err := c.CreateTask(ctx, title, desc)
 		if err != nil {
 			errMsg := fmt.Sprintf("Error creating task: %v", err)
 			return cli.Exit(errMsg, 1)
 		}
-		log.Printf("Result task: %s", result)
+		log.Printf("Created task: %s", task)
 
 		return nil
 	},
