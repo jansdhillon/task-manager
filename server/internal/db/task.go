@@ -153,7 +153,7 @@ func (t *TaskDB) UpdateTask(ctx context.Context, id uuid.UUID, title string, des
 		updateStmt = Task.UPDATE(Task.Title, Task.Description, Task.Status)
 	}
 
-	values := map[postgres.Column]interface{}{
+	values := map[postgres.Column]any{
 		Task.Title:       title,
 		Task.Description: description,
 	}
